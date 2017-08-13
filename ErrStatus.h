@@ -34,7 +34,7 @@
 #define SEV_ERROR   2
 #define SEV_WARNING 3
 #define SEV_INFO    4
-#define SEV_TRACE   5
+#define SEV_DEBUG   5
 #define SEV_UNKNOWN 99
 
 //
@@ -88,7 +88,7 @@ public:
     ErrStatus(const ErrStatus& b) = default;
         
     bool isFail() {
-        return(_isFail);
+        return(isFail_);
     }
 
     void push(const char* file, int line, int sev, int code, const char* msg);

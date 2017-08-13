@@ -26,3 +26,4 @@ clean:
 	-rm -f *.o $(PROGRAMS)
 
 
+votecount: ErrStatus.o
