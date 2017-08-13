@@ -86,6 +86,12 @@ public:
     }
     
     ErrStatus(const ErrStatus& b) = default;
+    
+    void clear() {
+        isFail_ = false;
+        mostSevere_ = SEV_UNKNOWN;
+        errVec_.clear();
+    }
         
     bool isFail() {
         return(isFail_);

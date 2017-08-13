@@ -26,6 +26,7 @@
 #include "ErrStatus.h"
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <stdlib.h>
 
@@ -61,7 +62,7 @@ public:
     }
     
     std::string getString() const {
-        return(strVal);
+        return(strVal_);
     }
     
     int64_t getInt() const {
@@ -69,7 +70,7 @@ public:
         const char* p = strVal_.c_str();
         while ((*p == ' ') || (*p == '\t')) ++p;
         char c0 = *p;
-        if ((c0 == '+') || (c0 == '-') || ('0' <= c) && (c <= '9')) {
+        if ((c0 == '+') || (c0 == '-') || ('0' <= c0) && (c0 <= '9')) {
             return atoi(p);
         }
         return(0);
@@ -89,7 +90,7 @@ public:
     
     TableCell& operator=(int64_t intVal) {
         char buf[64];
-        sprintf(buf, "%d", intVal);
+        sprintf(buf, "%ld", intVal);
         isNull_ = false;
         strVal_ = buf;
     }
@@ -111,12 +112,12 @@ typedef std::function<std::string(const TableRow&)> TableRowStringFunc;
 class Table {
 private:
     ErrStatus errStatus_;
-    std::vector colNames_;
+    std::vector<std::string> colNames_;
     std::unordered_map<std::string, int> colNameMap_;
     std::vector<TableRow> rowVec_;
     
 public:
-    Table() { }
+    Table();
 
     Table(const Table& b) = default;
     
@@ -133,7 +134,7 @@ public:
           const std::vector<TableRowStringFunc>& newColFuncs);
 
     Table(const char* how, /* "union" */
-          const std::vector<Table> srcVec);
+          const std::vector<Table>& srcVec);
 
     bool scanRows(TableRowBoolFunc scanRowFunc);
           
