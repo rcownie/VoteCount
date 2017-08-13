@@ -60,7 +60,7 @@ public:
         return(isNull_);
     }
     
-    std::string getStr() const {
+    std::string getString() const {
         return(strVal);
     }
     
@@ -118,22 +118,21 @@ private:
 public:
     Table() { }
 
-private:
-    // disallow copy-constructor and copy-assign
-    Table(const Table& b);
-    Table& operator=(const Table& b);
+    Table(const Table& b) = default;
+    
+    Table& operator=(const Table& b) = default;
 
 public:    
-    Table(const char* how,
+    Table(const char* how, /* "html" or "csv" */
           const std::string& fileName);
     
-    Table(const char* how,
+    Table(const char* how, /* "transform" */
           const Table& src,
           TableRowBoolFunc acceptRowFunc,
           const std::vector<std::string>& newColNames,
           const std::vector<TableRowStringFunc>& newColFuncs);
 
-    Table(const char* how,
+    Table(const char* how, /* "union" */
           const std::vector<Table> srcVec);
 
     bool scanRows(TableRowBoolFunc scanRowFunc);
@@ -154,9 +153,11 @@ private:
     
     void populateWithCSV(const std::string& fileName);
     
+    void addCol(const std::string& colName);
+    
     void addRow(const TableRow& row);
     
-    std::vector<std::string> getDistinctVals(int colIdx) const;
+    std::vector<std::string> getColDistinctVals(size_t colIdx) const;
 
 };
 
