@@ -113,7 +113,6 @@ void Table::addCol(const std::string& colName) {
 }
 
 void Table::addRow(const TableRow& row) {
-    
     if (row.size() != colNames_.size()) {
         fprintf(stderr, "ERROR: addRow row size %lu num cols %lu\n",
             row.size(), colNames_.size());
@@ -301,7 +300,6 @@ finishTable:
 
 void Table::populateWithCSV(const std::string& fileName) {
     clear();
-    printf("DEBUG: file '%s' ...\n", fileName.c_str());
     FILE* f = fopen(fileName.c_str(), "r");
     if (!f) {
         STATUS_ERROR(errStatus_, 0, "populateWithCSV can't open file");
@@ -355,6 +353,7 @@ void Table::populateWithCSV(const std::string& fileName) {
             } else if ((c == fieldSep) || (c == '\n')) {
                 curRow.push_back(TableCell(buf));
                 bufPos = buf;
+                *bufPos = 0;
                 if (c == '\n') { // a partial line doesn't count
                     if (haveHeader) {
                         int numExtraCols = (curRow.size() - colNames_.size());
@@ -372,9 +371,21 @@ void Table::populateWithCSV(const std::string& fileName) {
                                         idx, curRow[idx].getString().c_str());
                             }
                         }
+                        for (int idx = curRow.size(); --idx >= (int)colNames_.size();) {
+                            //
+                            // Ignore any empty or "0" values
+                            //
+                            auto val = curRow[idx].getString();
+                            if ((val == "") || (val == "0")) {
+                                curRow.resize(idx);
+                            } else {
+                                break;
+                            }
+                        }
                         addRow(curRow);
                     } else {
                         haveHeader = true;
+                        //printf("DEBUG: header row size %lu\n", curRow.size());
                         for (auto& cell : curRow) {
                             addCol(cell.getString());
                         }
@@ -386,7 +397,6 @@ void Table::populateWithCSV(const std::string& fileName) {
             } else {
                 if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
             }
-            break;
         } else {
             if (c == DOUBLEQUOTE) {
                 if (nextChar == DOUBLEQUOTE) {
@@ -398,7 +408,6 @@ void Table::populateWithCSV(const std::string& fileName) {
             } else {
                 if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
             }
-            break;
         }
     }
     fclose(f);

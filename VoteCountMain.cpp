@@ -75,9 +75,10 @@ void transformCountyTables(
     std::vector<Table> countyTab;
     //std::set<std::string> allCandidates;
     for (auto& srcFile : srcFiles) {
-        //printf("reading %s ...\n", srcFile.c_str());
+        printf("reading %s ...\n", srcFile.c_str());
         Table rawCounty("csv", srcFile);
         auto colNames = rawCounty.getColNames();
+        //printf("colNames.size %lu\n", colNames.size());
         for (auto& colName : colNames) {
             printf("XX %s %s\n", colName.c_str(), srcFile.c_str());
         }
