@@ -139,6 +139,10 @@ public:
     std::vector<std::string> getColNames() const;
     
     int findColIdx(const std::string& colName) const;
+
+    size_t getNumRows() const {
+        return(rowVec_.size());
+    }
     
     bool scanRows(TableRowBoolFunc scanRowFunc) const;
           

@@ -73,15 +73,69 @@ void transformCountyTables(
     const std::vector<std::string>& srcFiles
 ) {
     std::vector<Table> countyTab;
-    //std::set<std::string> allCandidates;
+    std::set<std::string> allColNames;
+    std::set<std::string> allOffices;
+    std::set<std::string> allCandidates;
     for (auto& srcFile : srcFiles) {
         printf("reading %s ...\n", srcFile.c_str());
         Table rawCounty("csv", srcFile);
         auto colNames = rawCounty.getColNames();
-        //printf("colNames.size %lu\n", colNames.size());
         for (auto& colName : colNames) {
-            printf("XX %s %s\n", colName.c_str(), srcFile.c_str());
+            allColNames.insert(colName);
         }
+        //
+        // Filter down to the presidential race
+        //
+        int officeIdx = rawCounty.findColIdx("office");
+        auto newColNames = rawCounty.getColNames();
+        std::vector<TableRowStringFunc> newColFuncs;
+        for (size_t idx = 0; idx < newColNames.size(); ++idx) {
+            newColFuncs.push_back(
+                [idx,officeIdx](const TableRow& row)->std::string {
+                    if (idx == officeIdx) return "President";
+                    return row[idx].getString();
+                }
+            );
+        }
+        Table countyPres(
+            "transform",
+            rawCounty,
+            [officeIdx](const TableRow& row)->bool {
+                auto val = row[officeIdx].getString();
+                if ((val == "President") ||
+                    (val == "Electors for President & Vice President")) {
+                    return true;
+                }
+                return false;
+            },
+            newColNames,
+            newColFuncs
+        );
+        // printf("-- countyPres numRows %lu\n", countyPres.getNumRows());
+        int idx = countyPres.findColIdx("office");
+        if (idx >= 0) {
+            auto vals = countyPres.getColDistinctVals(idx);
+            for (auto& val : vals) {
+                allOffices.insert(val);
+            }
+        }
+        idx = countyPres.findColIdx("candidate");
+        if (idx < 0) idx = countyPres.findColIdx("Candidate");
+        if (idx >= 0) {
+            auto vals = countyPres.getColDistinctVals(idx);
+            for (auto& val : vals) {
+                allCandidates.insert(val);
+            }
+        }
+    }
+    for (auto& colName : allColNames) {
+        printf("COLNAME %s\n", colName.c_str());
+    }
+    for (auto& office : allOffices) {
+        printf("OFFICE %s\n", office.c_str());
+    }
+    for (auto& cand : allCandidates) {
+        printf("CANDIDATE %s\n", cand.c_str());
     }
 }
 

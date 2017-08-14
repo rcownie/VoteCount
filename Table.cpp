@@ -51,6 +51,7 @@ Table::Table(
 }
 
 Table::Table(
+    
     const char* how,
     const Table& src,
     TableRowBoolFunc acceptRowFunc,
@@ -158,6 +159,7 @@ void Table::populateWithTransform(
         for (auto& colFunc : newColFuncs) {
             newRow.push_back(TableCell(colFunc(srcRow)));
         }
+        rowVec_.push_back(newRow);
     }
 }
 
@@ -363,13 +365,9 @@ void Table::populateWithCSV(const std::string& fileName) {
                                 addCol("");
                             }
                         }
-                        if (curRow.size() != colNames_.size()) {
+                        if (curRow.size() < colNames_.size()) {
                             fprintf(stderr, "ERROR: numRows %lu numCols %lu rowCols %lu\n",
                                     rowVec_.size(), curRow.size(), colNames_.size());
-                            for (size_t idx = 0; idx < curRow.size(); ++idx) {
-                                fprintf(stderr, "DEBUG: [%lu]=\"%s\"\n",
-                                        idx, curRow[idx].getString().c_str());
-                            }
                         }
                         for (int idx = curRow.size(); --idx >= (int)colNames_.size();) {
                             //
