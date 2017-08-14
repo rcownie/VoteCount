@@ -28,6 +28,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#if 1
+# define D(fmt, ...) { printf("DEBUG[%d] ", __LINE__); printf(fmt, __VA_ARGS__); fflush(stdout); }
+#else 
+# define D(fmt, ...) { }
+#endif
+
 Table::Table() {
 }
 
@@ -54,7 +60,7 @@ Table::Table(
     if (newColNames.size() != newColFuncs.size()) {
         STATUS_FATAL(errStatus_, 0, "size mismatch");
     } else {
-        populateWithTransform(src, acceptRowFunc, newColNames, newColFuncs);
+        populateWithTransform("transform", src, acceptRowFunc, newColNames, newColFuncs);
     }
 }
 
@@ -111,7 +117,34 @@ std::vector<std::string> Table::getColDistinctVals(size_t colIdx) const {
     return(result);
 }
 
-void Table::populateWithUnion(const std::vector<Table> srcTables) {
+void Table::populateWithTransform(
+    const char* how, /* "transform" */
+    const Table& src,
+    TableRowBoolFunc acceptRowFunc,
+    const std::vector<std::string>& newColNames,
+    const std::vector<TableRowStringFunc>& newColFuncs
+) {
+    clear();
+    errStatus_ = src.errStatus_;
+    if (newColNames.size() != newColFuncs.size()) {
+        STATUS_FATAL(errStatus_, 0, "num cols mismatch");
+        return;
+    }
+    for (auto& colName : newColNames) {
+        addCol(colName);
+    }
+    for (auto& srcRow : src.rowVec_) {
+        if (!acceptRowFunc(srcRow)) continue;
+        TableRow newRow;
+        for (auto& colFunc : newColFuncs) {
+            newRow.push_back(TableCell(colFunc(srcRow)));
+        }
+    }
+}
+
+
+void Table::populateWithUnion(const std::vector<Table>& srcTables) {
+    assert(0);
     clear();
     for (size_t idx = 0; idx < srcTables.size(); ++idx) {
         auto& src = srcTables[idx];
@@ -159,6 +192,7 @@ static int htmlWhichTag(const char* s) {
 }
 
 void Table::populateWithHTML(const std::string& fileName) {
+    clear();
     FILE* f = fopen(fileName.c_str(), "r");
     if (!f) {
         STATUS_ERROR(errStatus_, 0, "populateWithHTML can't open file");
@@ -174,54 +208,64 @@ void Table::populateWithHTML(const std::string& fileName) {
     int state = 0;
     for (;;) {
         int c = fgetc(f);
+        if (c == EOF) goto finishTable;
         if (c == '<') {
             char tagBuf[512];
             char* tagPos = tagBuf;
             *tagPos++ = c;
             for (;;) {
                 c = fgetc(f);
-                if (c == EOF) break;
+                if (c == EOF) goto finishTable;
                 if (tagPos-tagPos < 511) { *tagPos++ = c; *tagPos = 0; }
                 if (c == '>') {
-                    int tag = htmlWhichTag(tagBuf);
-                    switch (tag) {
-                        case HTML_TR:
-                            curRow.clear();
-                            state = 1; // in a row
-                            break;
-                        case HTML_TD:
-                            if (state == 1) state = 2; // in a data cell
-                            break;
-                        case HTML_P:
-                            if (state == 2) {
-                                bufPos = buf;
-                                state = 3; // in a <p>
-                            }
-                            break;
-                        case HTML_SLASHP:
-                            if (state == 3) {
-                                curRow.push_back(TableCell(buf));
-                                state = 2;
-                            }
-                            break;
-                        case HTML_SLASHTD:
-                            if (state == 2) state = 1;
-                            break;
-                        case HTML_SLASHTR:
-                            if (haveHeader) {
-                                addRow(curRow);
-                            } else {
-                                haveHeader = true;
-                                for (auto& cell : curRow) {
-                                    addCol(cell.getString());
-                                }
-                            }
-                            curRow.clear();
-                            state = 0; // not in a row
-                        default:
-                            break;
-                    }
+                    break;
                 }
+            }
+            int tag = htmlWhichTag(tagBuf);
+#if 0
+            {   char buf[16];
+                strncpy(buf, tagBuf, 8);
+                tagBuf[8] = 0;
+                D("state %d htmlTag(\"%s\") -> %d\n", state, tagBuf, tag);
+            }
+#endif
+            tagPos = tagBuf;
+            switch (tag) {
+                case HTML_TR:
+                    curRow.clear();
+                    state = 1; // in a row
+                    break;
+                case HTML_TD:
+                    if (state == 1) state = 2; // in a data cell
+                    break;
+                case HTML_P:
+                    if (state == 2) {
+                        bufPos = buf;
+                        state = 3; // in a <p>
+                    }
+                    break;
+                case HTML_SLASHP:
+                    if (state == 3) {
+                        curRow.push_back(TableCell(buf));
+                        state = 2;
+                    }
+                    break;
+                case HTML_SLASHTD:
+                    if (state == 2) state = 1;
+                    break;
+                case HTML_SLASHTR:
+                    if (haveHeader) {
+                        if (!curRow.empty()) addRow(curRow);
+                    } else {
+                        haveHeader = true;
+                        for (auto& cell : curRow) {
+                            addCol(cell.getString());
+                        }
+                    }
+                    curRow.clear();
+                    state = 0; // not in a row
+                default:
+                    break;
             }
             continue;
         }
@@ -229,10 +273,12 @@ void Table::populateWithHTML(const std::string& fileName) {
             if (bufPos-buf < 511) { *bufPos++ = c; *bufPos = 0; }
         }
     }
+finishTable:
     fclose(f);
 }
 
 void Table::populateWithCSV(const std::string& fileName) {
+    clear();
     FILE* f = fopen(fileName.c_str(), "r");
     if (!f) {
         STATUS_ERROR(errStatus_, 0, "populateWithCSV can't open file");

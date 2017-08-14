@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <sstream>
 
+size_t ErrSingle::seqIdCounter;
+
 void ErrStatus::push(const char* file, int line, int sev, int code, const char* msg) {
     if (mostSevere_ > sev) {
         mostSevere_ = sev;

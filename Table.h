@@ -143,12 +143,15 @@ private:
     
     void clear();
 
-    void populateWithTransform(const Table& src, 
-                   TableRowBoolFunc acceptRowFunc,
-                   const std::vector<std::string>& newColNames,
-                   const std::vector<TableRowStringFunc>& newColFuncs);
+    void populateWithTransform(
+        const char* how,
+        const Table& src, 
+        TableRowBoolFunc acceptRowFunc,
+        const std::vector<std::string>& newColNames,
+        const std::vector<TableRowStringFunc>& newColFuncs
+    );
     
-    void populateWithUnion(const std::vector<Table> srcTables);
+    void populateWithUnion(const std::vector<Table>& srcTables);
     
     void populateWithHTML(const std::string& fileName);
     

@@ -5,7 +5,7 @@
 
 FLEX     := /usr/bin/flex
 CXX      := /usr/bin/g++
-CXXFLAGS := -std=c++11 -ggdb -O2
+CXXFLAGS := -std=c++11 -ggdb -O0
 
 #
 # General rule for C++ compilation
@@ -20,10 +20,20 @@ CXXFLAGS := -std=c++11 -ggdb -O2
 
 PROGRAMS := votecount
 
-all: $(PROGRAMS)
+RESULTS  := ks_2016.csv
+
+all: $(PROGRAMS) $(RESULTS)
 
 clean:
 	-rm -f *.o $(PROGRAMS)
 
+VOTECOUNT_OBJS := VoteCountMain.o ErrStatus.o Table.o
 
-votecount: ErrStatus.o Table.o
+votecount: $(VOTECOUNT_OBJS) Makefile
+	$(CXX) -o $@ $(CXXFLAGS) $(VOTECOUNT_OBJS)
+
+ks_2016.csv: votecount
+	echo "run -s ks data/ks/2016_general_precinct.html" >a.gdb
+	gdb votecount -x a.gdb
+	#votecount -o $@ -s ks data/ks/2016_general_precinct.html
+
