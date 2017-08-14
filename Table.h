@@ -135,9 +135,15 @@ public:
 
     Table(const char* how, /* "union" */
           const std::vector<Table>& srcVec);
-
-    bool scanRows(TableRowBoolFunc scanRowFunc);
+    
+    std::vector<std::string> getColNames() const;
+    
+    int findColIdx(const std::string& colName) const;
+    
+    bool scanRows(TableRowBoolFunc scanRowFunc) const;
           
+    std::vector<std::string> getColDistinctVals(size_t colIdx) const;
+    
 private:
     void clearRows();
     
@@ -161,8 +167,6 @@ private:
     
     void addRow(const TableRow& row);
     
-    std::vector<std::string> getColDistinctVals(size_t colIdx) const;
-
 };
 
 typedef std::shared_ptr<Table> TablePtr;

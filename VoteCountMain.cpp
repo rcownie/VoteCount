@@ -22,6 +22,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 #include "Table.h"
+#include <set>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +60,11 @@ void transformStateTable(
         exit(1);
     }
     Table tab0("html", srcFiles[0]);
-    
+    int colIdx = tab0.findColIdx("Candidate");
+    auto vals = tab0.getColDistinctVals(colIdx);
+    for (auto& val : vals) {
+        printf("Candidate \"%s\"\n", val.c_str());
+    }
 }
 
 void transformCountyTables(
@@ -67,6 +72,16 @@ void transformCountyTables(
     const std::string& stateId,
     const std::vector<std::string>& srcFiles
 ) {
+    std::vector<Table> countyTab;
+    //std::set<std::string> allCandidates;
+    for (auto& srcFile : srcFiles) {
+        //printf("reading %s ...\n", srcFile.c_str());
+        Table rawCounty("csv", srcFile);
+        auto colNames = rawCounty.getColNames();
+        for (auto& colName : colNames) {
+            printf("XX %s %s\n", colName.c_str(), srcFile.c_str());
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -107,7 +122,7 @@ int main(int argc, char* argv[]) {
     if        ((stateId == "ks") || (stateId == "kansas")) {
         transformStateTable(out, "ks", fileNames);
     } else if ((stateId == "ny") || (stateId == "newyork")) {
-        
+        transformCountyTables(out, "ny", fileNames);
     }
     return(0);
 }

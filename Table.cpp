@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#if 1
+#if 0
 # define D(fmt, ...) { printf("DEBUG[%d] ", __LINE__); printf(fmt, __VA_ARGS__); fflush(stdout); }
 #else 
 # define D(fmt, ...) { }
@@ -71,7 +71,16 @@ Table::Table(
     populateWithUnion(srcVec);
 }
 
-bool Table::scanRows(TableRowBoolFunc scanRowFunc) {
+std::vector<std::string> Table::getColNames() const {
+    return(colNames_);
+}
+
+int Table::findColIdx(const std::string& colName) const {
+    auto iter = colNameMap_.find(colName);
+    return((iter == colNameMap_.end()) ? -1 : iter->second);
+}
+
+bool Table::scanRows(TableRowBoolFunc scanRowFunc) const {
     for (auto& row : rowVec_) {
         if (scanRowFunc(row)) return true;
     }
@@ -93,11 +102,22 @@ void Table::addCol(const std::string& colName) {
     assert(rowVec_.empty());
     assert(colNameMap_.count(colName) == 0);
     int colIdx = colNames_.size();
-    colNames_.push_back(colName);
-    colNameMap_[colName] = colIdx;
+    std::string modColName = colName;
+    if (colName == "") {
+        char buf[16];
+        sprintf(buf, "_column%d", colIdx);
+        modColName = std::string(buf);
+    }
+    colNames_.push_back(modColName);
+    colNameMap_[modColName] = colIdx;
 }
 
 void Table::addRow(const TableRow& row) {
+    
+    if (row.size() != colNames_.size()) {
+        fprintf(stderr, "ERROR: addRow row size %lu num cols %lu\n",
+            row.size(), colNames_.size());
+    }
     assert(row.size() == colNames_.size());
     rowVec_.push_back(row);
 }
@@ -277,42 +297,108 @@ finishTable:
     fclose(f);
 }
 
+#define DOUBLEQUOTE '\"'
+
 void Table::populateWithCSV(const std::string& fileName) {
     clear();
+    printf("DEBUG: file '%s' ...\n", fileName.c_str());
     FILE* f = fopen(fileName.c_str(), "r");
     if (!f) {
         STATUS_ERROR(errStatus_, 0, "populateWithCSV can't open file");
         return;
     }
+    bool addAnonymousColumns = true;
     //
-    // Simple state machine detects <tr>, </tr>, <td>, </td>, <p>, </p>
+    // Read first line to guess whether separator is comma or tab
     //
+    int fieldSep = '\t';
+    char lineBuf[4*1024];
+    char* p = fgets(lineBuf, sizeof(lineBuf)-1, f);
+    int numComma = 0;
+    int numTab = 0;
+    if (p) {
+        for (; *p; ++p) {
+            if (*p == ',') ++numComma;
+            if (*p == '\t') ++numTab;
+        }
+        if (numComma > numTab) fieldSep = ',';
+    }
+    rewind(f);
+    //
+    // Simple state machine copes with different line-ending
+    //
+    int lineNo = 1;
+    bool isQuoted = false;
     bool haveHeader = false;
     char buf[512];
-    char* bufPos = nullptr;
+    char* bufPos = buf;
     TableRow curRow;
+    int nextChar = fgetc(f); // one-byte lookahead
     for (;;) {
-        int c = fgetc(f);
-        if ((c == '\t') || (c == '\n') || (c == EOF)) {
-            if ((c == '\n') && (bufPos > buf) && (bufPos[-1] == '\r')) {
-                // kludge for a CR-LF sequence
-                *--bufPos = 0;
-            }
-            curRow.push_back(TableCell(buf));
-            if ((c == '\n') || (c == EOF)) {
-                if (haveHeader) {
-                    addRow(curRow);
-                } else {
-                    haveHeader = true;
-                    for (auto& cell : curRow) {
-                        addCol(cell.getString());
-                    }
+        int c = nextChar;
+        if (c != EOF) {
+            nextChar = fgetc(f);
+            if (c == '\r') {
+                c == '\n';
+                if (nextChar == '\n') {
+                    // treat CR or CR-LF as '\n'
+                    nextChar = fgetc(f);
                 }
-                curRow.clear();
-                if (c == EOF) break;
             }
+        }
+        if (c == EOF) {
+            break;
+        }
+        if (!isQuoted) {
+            if (c == DOUBLEQUOTE) {
+                isQuoted = true;
+            } else if ((c == fieldSep) || (c == '\n')) {
+                curRow.push_back(TableCell(buf));
+                bufPos = buf;
+                if (c == '\n') { // a partial line doesn't count
+                    if (haveHeader) {
+                        int numExtraCols = (curRow.size() - colNames_.size());
+                        if (rowVec_.empty() && (numExtraCols > 0)) {
+                            STATUS_WARNING(errStatus_, 0, "adding anonymous columns");
+                            for (int j = 0; j < numExtraCols; ++j) {
+                                addCol("");
+                            }
+                        }
+                        if (curRow.size() != colNames_.size()) {
+                            fprintf(stderr, "ERROR: numRows %lu numCols %lu rowCols %lu\n",
+                                    rowVec_.size(), curRow.size(), colNames_.size());
+                            for (size_t idx = 0; idx < curRow.size(); ++idx) {
+                                fprintf(stderr, "DEBUG: [%lu]=\"%s\"\n",
+                                        idx, curRow[idx].getString().c_str());
+                            }
+                        }
+                        addRow(curRow);
+                    } else {
+                        haveHeader = true;
+                        for (auto& cell : curRow) {
+                            addCol(cell.getString());
+                        }
+                    }
+                    curRow.clear();
+                    if (c == EOF) break;
+                    ++lineNo;
+                }
+            } else {
+                if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
+            }
+            break;
         } else {
-            if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
+            if (c == DOUBLEQUOTE) {
+                if (nextChar == DOUBLEQUOTE) {
+                    nextChar = fgetc(f);
+                    if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
+                } else {
+                    isQuoted = false;
+                }
+            } else {
+                if (bufPos < buf+511) { *bufPos++ = c; *bufPos = 0; }
+            }
+            break;
         }
     }
     fclose(f);
