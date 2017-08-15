@@ -1,0 +1,58 @@
+VoteCount/votecount_2016.README
+-------------------------------
+
+Richard Cownie, 2017-08-15
+
+Introduction
+------------
+
+votecount is a flexible program for transforming tables of low-level detailed
+election results (usually with precinct-level vote counts) into a single
+higher-level table (e.g. a table for a state, with one line per precinct).
+
+Since the format of results varies from state to state, and from county to county
+within a state, votecount is controlled by a table which specifies the rules
+for transformation and aggregation of the low-level results.  This contains
+both global rules (e.g. to recognize variations of the candidate-name which
+occur across different states), and other rules to be applied to particular
+states or state.county inputs.
+
+Rule specifications
+-------------------
+
+We provide a sample rule table "votecount_2016.conf" with rules for the
+2016 presidential general election.
+
+The rule table is in CSV format using comma as the field-separator.
+
+Here is a simple rule table (formatted with comments and extra spaces for clarity,
+though these are not allowed in the actual file):
+
+State, County, Action            MatchCase,  MapFrom,           MapTo
+ANY,   ANY,    MapColumnName,    NO,        "Race",            "Race"
+ANY,   ANY,    MapColumnName,    NO,        "Office",          "Race"
+ANY,   ANY,    MapColumnName,    NO,        "Candidate Name",  "Candidate"
+
+# Declare MAJORCANDIDATE's which will appear as separate columns in output
+ANY,   ANY,    DeclareCandidate, YES,       "Trump",,
+ANY,   ANY,    DeclareCandidate, YES,       "Clinton",,
+ANY,   ANY,    DeclareCandidate, YES,       "Johnson",,
+ANY,   ANY,    DeclareCandidate, YES,       "Stein",,
+ANY,   ANY,    DeclareCandidate, YES,       "McMullin",
+ANY,   ANY,    DeclareCandidate, YES,       "Castle",,
+
+# Declare 
+NY,    ANY,    Race,       NO,        "President",       "President",
+NY,    ANY,    Race,       NO,        "Electors for President & Vice President", "President"
+
+# Declare mappings for all variations of the MAJORCANDIDATE names
+ANY,   ANY,    Candidate,  NO,        "Donald J Trump",  "Trump"
+ANY,   ANY,    Candidate,  NO,        "Hillary Clinton", "Clinton"
+ANY,   ANY,    Candidate,  NO,        "Clinton/ Kaine",  "Clinton"
+
+ANY,   ANY,    MAJORCANDIDATE, YES,   "Trump",,
+ANY,   ANY,    MAJORCANDIDATE, YES,   "Clinton",,
+ANY,   ANY,    MAJORCANDIDATE, YES,   "Johnson",,
+ANY,   ANY,    MAJORCANDIDATE, YES,   "Stein",,
+ANY,   ANY,    MAJORCANDIDATE, YES,   "McMullin",
+ANY,   ANY,    MAJORCANDIDATE, YES,   "Castle",,
