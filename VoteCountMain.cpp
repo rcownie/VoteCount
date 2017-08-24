@@ -29,10 +29,11 @@
 #include <string.h>
 
 void usage() {
-    fprintf(stderr, "usage: votecount -s <stateAbbrev> -o <outName> <file1> [ <file2> ... ]\n");
+    fprintf(stderr, "usage: votecount [-a <analyzeCol>] [-c <confFile>] -s <stateAbbrev> -o <outName> <file1> [ <file2> ... ]\n");
     exit(1);
 }
 
+const char* optAnalyzeCol;
 const char* optConfFile = "votecount_2016.conf";
 const char* optOutFile = "stdout";
 const char* optStateId = "ks";
@@ -59,92 +60,264 @@ bool isMatchingStr(bool matchCase, const std::string& a, const std::string& b) {
     }
 }
 
-void transformStateTable(
-    FILE* out,
-    const std::string& stateId,
-    const std::vector<std::string>& srcFiles
-) {
-    if (srcFiles.size() != 1) {
-        fprintf(stderr, "ERROR: stateId \"%s\" needs exactly one file", stateId.c_str());
-        exit(1);
+bool isTrueOrYes(const std::string& s) {
+    auto val = toLower(s.c_str());
+    if ((val == "yes") ||
+        (val == "y") ||
+        (val == "true") ||
+        (val == "t")) {
+        return true;
     }
-    Table tab0("html", srcFiles[0]);
-    int colIdx = tab0.findColIdx("Candidate");
-    auto vals = tab0.getColDistinctVals(colIdx);
-    for (auto& val : vals) {
-        printf("Candidate \"%s\"\n", val.c_str());
+    return false;
+}
+
+//
+// This reads
+//
+
+class ColumnNameMap {
+private:
+    class Rule {
+    public:
+        std::string county_;
+        std::string oldName_;
+        bool        matchCase_;
+        std::string newName_;
+    
+    public:
+        Rule(std::string county, std::string oldName, bool matchCase, std::string newName) :
+            county_(county),
+            oldName_(oldName),
+            matchCase_(matchCase),
+            newName_(newName) {
+        }
+        
+        Rule(const Rule& b) = default;
+    };
+
+    std::vector<Rule> rules_;
+public:
+    ColumnNameMap(const Table& confTab, const std::string& stateId) {
+        auto colState  = confTab.findColIdx("State");
+        auto colCounty = confTab.findColIdx("County");
+        auto colActionOrColumn = confTab.findColIdx("ActionOrColumn");
+        auto colMatchCase = confTab.findColIdx("MatchCase");
+        auto colMapTo = confTab.findColIdx("MapTo");
+        auto colMapFrom = confTab.findColIdx("MapFrom");
+        for (int phase = 0; phase < 3; ++phase) {
+            confTab.scanRows(
+                [=](const TableRow& row)->bool {
+                    if (row[colActionOrColumn].getString() == "!MapColumn") {
+                        auto valState = row[colState].getString();
+                        if ((valState != "ANY") && !isMatchingStr(false, valState, stateId)) {
+                            // ignore rules specific to other states
+                            return false;
+                        }
+                        auto valCounty = row[colCounty].getString();
+                        Rule newRule(
+                            valCounty,
+                            row[colMapFrom].getString(),
+                            isTrueOrYes(row[colMatchCase].getString()),
+                            row[colMapTo].getString()
+                        );
+                        if       (valCounty != "ANY") {
+                            if (phase == 0) this->rules_.push_back(newRule);
+                        } else if (valState != "ANY") {
+                            if (phase == 1) this->rules_.push_back(newRule);
+                        } else {
+                            if (phase == 2) this->rules_.push_back(newRule);
+                        }
+                    }
+                    return false;
+                }
+            );
+        }
+    }
+    
+    std::string mapColumnName(const std::string& colName) {
+        // FIXME: need county name
+        for (auto& rule : rules_) {
+            if (isMatchingStr(rule.matchCase_, rule.oldName_, colName)) {
+                // The rules are in priority order, so the first rule that matches
+                // is the correct value.  Hmm, should we also allow further remapping
+                // by lower-priority rules ?  Keep it simple for now ...
+                return(rule.newName_);
+            }
+        }
+        return(colName);
+    }
+};
+
+class ColumnValueSummary {
+private:
+    std::set<std::string> set_;
+    bool hasMinAndMax_;
+    int64_t min_;
+    int64_t max_;
+
+public:
+    ColumnValueSummary() :
+        set_(),
+        hasMinAndMax_(false),
+        min_(0),
+        max_(0) {
+    }
+    
+    ColumnValueSummary(const ColumnValueSummary& b) = default;
+    
+    void insert(const std::string& str) {
+        std::string tmpS(str);
+        const char* s = tmpS.c_str();
+        const char* p = s;
+        if ((*p == '+') || (*p == '-')) ++p;
+        for (; *p != 0; ++p) {
+            int c = *p;
+            if (('0' <= c) && (c <= '9')) { 
+                int64_t val = atol(s);
+                if (!hasMinAndMax_) {
+                    hasMinAndMax_ = true;
+                    min_ = val;
+                    max_ = val;
+                } else {
+                    if (min_ > val) min_ = val;
+                    if (max_ < val) max_ = val;
+                }
+            } else {
+                set_.insert(str);
+            }
+        }
+    }
+    
+    std::string toString() const {
+        std::stringstream ss;
+        bool haveStrings = !set_.empty();
+        ss << "{";
+        if (hasMinAndMax_) {
+            ss << " /* min=" << min_ << ", max=" << max_ << "*/ ";
+        }
+        if (!set_.empty()) {
+            ss << "\n";
+            for (auto& val : set_) {
+                ss << "    \"" << val.c_str() << "\",\n";
+            }
+        }
+        ss << "}";
+        return ss.str();
+    }
+                                            
+};
+
+void checkConfTable(const Table& confTab) {
+    bool fail = false;
+    std::vector<const char*> wantColNames(
+        { "State", "County", "ActionOrColumn", "MatchCase", "MapTo", "MapFrom" }
+    );
+    auto colNames = confTab.getColNames();
+    for (size_t j = 0; j < wantColNames.size(); ++j) {
+        if (j >= colNames.size()) {
+            fprintf(stderr, "ERROR: missing column \"%s\"\n", wantColNames[j]);
+            fail = true;
+        } else if (colNames[j] != std::string(wantColNames[j])) {
+            fprintf(stderr, "ERROR: column mismatch want \"%s\", got \"%s\"\n",
+                wantColNames[j], colNames[j].c_str());
+            fail = true;
+        }
+    }
+    if (fail) {
+        exit(1);
     }
 }
 
-void transformCountyTables(
+void transformTables(
     FILE* out,
+    const Table& confTab,
     const std::string& stateId,
     const std::vector<std::string>& srcFiles
 ) {
     std::vector<Table> countyTab;
     std::set<std::string> allColNames;
-    std::set<std::string> allOffices;
+    ColumnValueSummary oneColSummary;
+    std::set<std::string> allRaces;
     std::set<std::string> allCandidates;
+    
+    ColumnNameMap colNameMap(confTab, stateId);
     for (auto& srcFile : srcFiles) {
         printf("reading %s ...\n", srcFile.c_str());
-        Table rawCounty("csv", srcFile);
-        auto colNames = rawCounty.getColNames();
-        for (auto& colName : colNames) {
-            allColNames.insert(colName);
+        Table countyA("csv", srcFile);
+        //
+        // First transformation is to apply colNameMap
+        //
+        auto newColNamesA = countyA.getColNames();
+        for (size_t idx = 0; idx < newColNamesA.size(); ++idx) {
+            newColNamesA[idx] = colNameMap.mapColumnName(newColNamesA[idx]);
         }
-        //
-        // Filter down to the presidential race
-        //
-        int officeIdx = rawCounty.findColIdx("office");
-        auto newColNames = rawCounty.getColNames();
-        std::vector<TableRowStringFunc> newColFuncs;
-        for (size_t idx = 0; idx < newColNames.size(); ++idx) {
-            newColFuncs.push_back(
-                [idx,officeIdx](const TableRow& row)->std::string {
-                    if (idx == officeIdx) return "President";
-                    return row[idx].getString();
+        std::vector<TableRowStringFunc> newColFuncsA;
+        for (size_t idxA = 0; idxA < newColNamesA.size(); ++idxA) {
+            newColFuncsA.push_back(
+                [idxA](const TableRow& row)->std::string {
+                    return row[idxA].getString();
                 }
             );
         }
-        Table countyPres(
+        Table countyB(
             "transform",
-            rawCounty,
-            [officeIdx](const TableRow& row)->bool {
-                auto val = row[officeIdx].getString();
-                if ((val == "President") ||
-                    (val == "Electors for President & Vice President")) {
-                    return true;
-                }
-                return false;
-            },
-            newColNames,
-            newColFuncs
+            countyA,
+            [](const TableRow&)->bool { return true; },
+            newColNamesA,
+            newColFuncsA
         );
-        // printf("-- countyPres numRows %lu\n", countyPres.getNumRows());
-        int idx = countyPres.findColIdx("office");
-        if (idx >= 0) {
-            auto vals = countyPres.getColDistinctVals(idx);
-            for (auto& val : vals) {
-                allOffices.insert(val);
+        //
+        // *If* there is an "Office" or "Race" column, filter out rows with
+        // non-president values.
+        //
+        int filterCol = -1;
+        if (filterCol < 0) filterCol = countyB.findColIdx("Office");
+        if (filterCol < 0) filterCol = countyB.findColIdx("Race");
+        if (optAnalyzeCol != nullptr) {
+            //
+            // Accumulate a ColumnValueSummary for the interesting column
+            //
+            auto colNames = countyB.getColNames();
+            for (auto colName : colNames) {
+                allColNames.insert(colName);
             }
-        }
-        idx = countyPres.findColIdx("candidate");
-        if (idx < 0) idx = countyPres.findColIdx("Candidate");
-        if (idx >= 0) {
-            auto vals = countyPres.getColDistinctVals(idx);
-            for (auto& val : vals) {
-                allCandidates.insert(val);
+            auto analyzeCol = countyB.findColIdx(optAnalyzeCol);
+            if (analyzeCol >= 0) {
+                countyB.scanRows(
+                    [=,&oneColSummary](const TableRow& row)->bool {
+                        if (filterCol != analyzeCol) {
+                            auto filterVal = row[filterCol].getString();
+                            if (!isMatchingStr(false, filterVal, "President") &&
+                                !isMatchingStr(false, filterVal, "Electors for President & Vice President")) {
+                                return false;
+                            }
+                            auto analyzeVal = row[analyzeCol].getString();
+                            oneColSummary.insert(analyzeVal);
+                            return false;
+                        }
+                    }
+                );
             }
+        } else {
+            //
+            // Accumulating the real results
+            //
         }
     }
-    for (auto& colName : allColNames) {
-        printf("COLNAME %s\n", colName.c_str());
-    }
-    for (auto& office : allOffices) {
-        printf("OFFICE, %s\n", office.c_str());
-    }
-    for (auto& cand : allCandidates) {
-        printf("ANY,ANY,Candidate,NO,\"%s\",\"Other\"\n", cand.c_str());
+    if (optAnalyzeCol != nullptr) {
+        //
+        // Print all column names
+        //
+        printf("Analyze: -a %s\n", optAnalyzeCol);
+        for (auto& colName : allColNames) {
+            printf("Analyze.ColName: \"%s\"\n", colName.c_str());
+        }
+        printf("Analyze: summary of column \"%s\" values\n", optAnalyzeCol);
+        printf("%s\n", oneColSummary.toString().c_str());
+    } else {
+        //
+        // Output the real accumulated results
+        //
     }
 }
 
@@ -156,6 +329,10 @@ int main(int argc, char* argv[]) {
         if (a[0] == '-') {
             const char* optStr = ((strlen(a) > 2) ? a+2 : nullptr);
             switch (a[1]) {
+                case 'a':
+                    if (!optStr) { optStr = nextArg; ++j; }
+                    optAnalyzeCol = optStr;
+                    break;
                 case 'c':
                     if (!optStr) { optStr = nextArg; ++j; }
                     optConfFile = optStr;
@@ -186,12 +363,10 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
     }
+    Table confTab("csv", optConfFile);
+    checkConfTable(confTab);
     std::string stateId = toLower(optStateId);
-    if        ((stateId == "ks") || (stateId == "kansas")) {
-        transformStateTable(out, "ks", fileNames);
-    } else if ((stateId == "ny") || (stateId == "newyork")) {
-        transformCountyTables(out, "ny", fileNames);
-    }
+    transformTables(out, confTab, stateId, fileNames);
     return(0);
 }
 
