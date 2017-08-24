@@ -237,13 +237,12 @@ void transformTables(
     std::vector<Table> countyTab;
     std::set<std::string> allColNames;
     ColumnValueSummary oneColSummary;
-    std::set<std::string> allRaces;
-    std::set<std::string> allCandidates;
     
     ColumnNameMap colNameMap(confTab, stateId);
     for (auto& srcFile : srcFiles) {
         printf("reading %s ...\n", srcFile.c_str());
-        Table countyA("csv", srcFile);
+        const char* htmlOrCsv = (strstr(srcFile.c_str(), ".htm") ? "html" : "csv");
+        Table countyA(htmlOrCsv, srcFile);
         //
         // First transformation is to apply colNameMap
         //

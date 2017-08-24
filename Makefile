@@ -20,7 +20,7 @@ CXXFLAGS := -std=c++11 -ggdb -O0
 
 PROGRAMS := votecount
 
-RESULTS  := ny_2016.csv 
+RESULTS  := ks_2016.csv ny_2016.csv 
 
 all: $(PROGRAMS) $(RESULTS)
 
@@ -35,13 +35,14 @@ votecount: $(VOTECOUNT_OBJS) Makefile
 DATADIR_NY := /localssd/rcownie/openelections-data-ny/2016
 
 ny_2016.csv: votecount
-	echo "votecount -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
+	echo "votecount -a Candidate -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
 	
 
 ks_2016.csv: votecount
-	echo "run -s ks data/ks/2016_general_precinct.html" >a.gdb
-	gdb votecount -x a.gdb
+	echo "votecount -a Candidate -s ks data/ks/2016_general_precinct.html" >a.gdb
+	bash a.gdb
+	#gdb votecount -x a.gdb
 
 
