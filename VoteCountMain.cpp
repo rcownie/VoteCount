@@ -33,6 +33,7 @@ void usage() {
     exit(1);
 }
 
+const char* optConfFile = "votecount_2016.conf";
 const char* optOutFile = "stdout";
 const char* optStateId = "ks";
 int optVerbose = 0;
@@ -48,6 +49,14 @@ std::string toLower(const char* s) {
     *bufPos = 0;
     return std::string(buf);
     
+}
+
+bool isMatchingStr(bool matchCase, const std::string& a, const std::string& b) {
+    if (matchCase) {
+        return(a == b);
+    } else {
+        return(toLower(a.c_str()) == toLower(b.c_str()));
+    }
 }
 
 void transformStateTable(
@@ -132,10 +141,10 @@ void transformCountyTables(
         printf("COLNAME %s\n", colName.c_str());
     }
     for (auto& office : allOffices) {
-        printf("OFFICE %s\n", office.c_str());
+        printf("OFFICE, %s\n", office.c_str());
     }
     for (auto& cand : allCandidates) {
-        printf("CANDIDATE %s\n", cand.c_str());
+        printf("ANY,ANY,Candidate,NO,\"%s\",\"Other\"\n", cand.c_str());
     }
 }
 
@@ -147,6 +156,10 @@ int main(int argc, char* argv[]) {
         if (a[0] == '-') {
             const char* optStr = ((strlen(a) > 2) ? a+2 : nullptr);
             switch (a[1]) {
+                case 'c':
+                    if (!optStr) { optStr = nextArg; ++j; }
+                    optConfFile = optStr;
+                    break;
                 case 'o':
                     if (!optStr) { optStr = nextArg; ++j; }
                     optOutFile = optStr;

@@ -28,31 +28,24 @@ The rule table is in CSV format using comma as the field-separator.
 Here is a simple rule table (formatted with comments and extra spaces for clarity,
 though these are not allowed in the actual file):
 
-State, County, Action            MatchCase,  MapFrom,           MapTo
-ANY,   ANY,    MapColumnName,    NO,        "Race",            "Race"
-ANY,   ANY,    MapColumnName,    NO,        "Office",          "Race"
-ANY,   ANY,    MapColumnName,    NO,        "Candidate Name",  "Candidate"
+State, County, ActionOrColumn,MatchCase,  MapTo,       MapFrom
+ANY,   ANY,    !MapColumn,    NO,        "Race",       "Race"
+ANY,   ANY,    !MapColumn,    NO,        "Race",       "Office"
+ANY,   ANY,    !MapColumn,    NO,        "Candidate",  "Candidate Name"
 
-# Declare MAJORCANDIDATE's which will appear as separate columns in output
-ANY,   ANY,    DeclareCandidate, YES,       "Trump",,
-ANY,   ANY,    DeclareCandidate, YES,       "Clinton",,
-ANY,   ANY,    DeclareCandidate, YES,       "Johnson",,
-ANY,   ANY,    DeclareCandidate, YES,       "Stein",,
-ANY,   ANY,    DeclareCandidate, YES,       "McMullin",
-ANY,   ANY,    DeclareCandidate, YES,       "Castle",,
+# Declare major candidates which will appear as separate columns in output
+ANY,   ANY,    !Candidate,    YES,       "Trump",,
+ANY,   ANY,    !Candidate,    YES,       "Clinton",,
+ANY,   ANY,    !Candidate,    YES,       "Johnson",,
+ANY,   ANY,    !Candidate,    YES,       "Stein",,
+ANY,   ANY,    !Candidate,    YES,       "McMullin",
+ANY,   ANY,    !Candidate,    YES,       "Castle",,
 
 # Declare 
-NY,    ANY,    Race,       NO,        "President",       "President",
-NY,    ANY,    Race,       NO,        "Electors for President & Vice President", "President"
+NY,    ANY,    Race,          NO,        "President",  "President"
+NY,    ANY,    Race,          NO,        "President",  "Electors for President & Vice President"
 
-# Declare mappings for all variations of the MAJORCANDIDATE names
-ANY,   ANY,    Candidate,  NO,        "Donald J Trump",  "Trump"
-ANY,   ANY,    Candidate,  NO,        "Hillary Clinton", "Clinton"
-ANY,   ANY,    Candidate,  NO,        "Clinton/ Kaine",  "Clinton"
-
-ANY,   ANY,    MAJORCANDIDATE, YES,   "Trump",,
-ANY,   ANY,    MAJORCANDIDATE, YES,   "Clinton",,
-ANY,   ANY,    MAJORCANDIDATE, YES,   "Johnson",,
-ANY,   ANY,    MAJORCANDIDATE, YES,   "Stein",,
-ANY,   ANY,    MAJORCANDIDATE, YES,   "McMullin",
-ANY,   ANY,    MAJORCANDIDATE, YES,   "Castle",,
+# Declare mappings for all variations of the !Candidate names
+ANY,   ANY,    Candidate,     NO,        "Trump",      "Donald J Trump"
+ANY,   ANY,    Candidate,     NO,        "Clinton",    "Hillary Clinton"
+ANY,   ANY,    Candidate,     NO,        "Clinton",    "Clinton/ Kaine"
