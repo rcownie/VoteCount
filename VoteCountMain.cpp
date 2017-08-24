@@ -271,8 +271,11 @@ void transformTables(
         // non-president values.
         //
         int filterCol = -1;
+        
         if (filterCol < 0) filterCol = countyB.findColIdx("Office");
+        if (filterCol < 0) filterCol = countyB.findColIdx("office");
         if (filterCol < 0) filterCol = countyB.findColIdx("Race");
+        if (filterCol < 0) filterCol = countyB.findColIdx("race");
         if (optAnalyzeCol != nullptr) {
             //
             // Accumulate a ColumnValueSummary for the interesting column
@@ -286,13 +289,17 @@ void transformTables(
                 countyB.scanRows(
                     [=,&oneColSummary](const TableRow& row)->bool {
                         if (filterCol != analyzeCol) {
-                            auto filterVal = row[filterCol].getString();
-                            if (!isMatchingStr(false, filterVal, "President") &&
-                                !isMatchingStr(false, filterVal, "Electors for President & Vice President")) {
-                                return false;
+                            if (filterCol >= 0) {
+                                auto filterVal = row[filterCol].getString();
+                                if (!isMatchingStr(false, filterVal, "President") &&
+                                    !isMatchingStr(false, filterVal, "Electors for President & Vice President")) {
+                                    return false;
+                                }    
                             }
-                            auto analyzeVal = row[analyzeCol].getString();
-                            oneColSummary.insert(analyzeVal);
+                            if (analyzeCol >= 0) {
+                                auto analyzeVal = row[analyzeCol].getString();
+                                oneColSummary.insert(analyzeVal);
+                            }
                             return false;
                         }
                     }
@@ -352,6 +359,7 @@ int main(int argc, char* argv[]) {
                     usage();
             }
         } else {
+            printf("fileName \"%s\"\n", a);
             fileNames.push_back(a);
         }
     }
