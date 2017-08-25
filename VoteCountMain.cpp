@@ -392,6 +392,7 @@ void transformTables(
         auto newColNamesA = countyA.getColNames();
         for (size_t idx = 0; idx < newColNamesA.size(); ++idx) {
             newColNamesA[idx] = colNameMap.mapString(newColNamesA[idx]);
+            printf("-- newColNames[%ld] = %s\n", idx, newColNamesA[idx].c_str());
         }
         std::vector<TableRowStringFunc> newColFuncsA;
         for (size_t idxA = 0; idxA < newColNamesA.size(); ++idxA) {
@@ -484,9 +485,20 @@ void transformTables(
             StringMap raceValueMap(confTab, stateId, "Race");
             countyB.scanRows(
                 [=,&raceValueMap,&candidateValueMap,&candidateMap,&precinctMap](const TableRow& row)->bool {
-                    auto valCounty = ((colCounty >= 0) ? row[colCounty].getString() : guessCounty);
+                    std::string valCounty;
+                    printf("-- colCounty %d\n", colCounty);
+                    if (colCounty >= 0) {
+                        valCounty = row[colCounty].getString();
+                        printf("-- row.getString() %s\n", valCounty.c_str());
+                    }
+                    if (valCounty == "") {
+                        valCounty = guessCounty;
+                        printf("-- use guessCounty %s\n", guessCounty.c_str());
+                    }
                     auto valPrecinct = row[colPrecinct].getString();
-                    if ((valPrecinct == "") || isMatchingStr(false, valPrecinct, "total")) {
+                    if ((valPrecinct == "") ||
+                        (valPrecinct == valCounty) || // "COWLEY KS" uses this as county-total
+                        isMatchingStr(false, valPrecinct, "total")) {
                         return false;
                     }
                     auto valRace = ((colRace >= 0) ? row[colRace].getString() : "President");

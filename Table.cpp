@@ -50,8 +50,7 @@ Table::Table(
     }
 }
 
-Table::Table(
-    
+Table::Table(    
     const char* how,
     const Table& src,
     TableRowBoolFunc acceptRowFunc,
@@ -76,9 +75,25 @@ std::vector<std::string> Table::getColNames() const {
     return(colNames_);
 }
 
+bool isSameStr(const std::string& a, const std::string& b) {
+    if (strcmp(a.c_str(), b.c_str()) == 0) return true;
+    return false;
+}
+
 int Table::findColIdx(const std::string& colName) const {
+#if 0
     auto iter = colNameMap_.find(colName);
-    return((iter == colNameMap_.end()) ? -1 : iter->second);
+    auto colIdx = ((iter == colNameMap_.end()) ? -1 : iter->second);
+#else
+    int colIdx;
+    for (colIdx = 0;; ++colIdx) {
+        if (colIdx >= (int)colNames_.size()) { colIdx = -1; break; }
+        printf("-- findColIdx compare \"%s\" and \"%s\"\n", colName.c_str(), colNames_[colIdx].c_str());
+        if (isSameStr(colNames_[colIdx], colName)) break;
+    }
+#endif
+    printf("-- findColIdx(\"%s\") -> %d\n", colName.c_str(), colIdx);
+    return(colIdx);
 }
 
 bool Table::scanRows(TableRowBoolFunc scanRowFunc) const {
@@ -93,6 +108,7 @@ void Table::clearRows() {
 }
 
 void Table::clear() {
+    printf("-- Table::clear()\n");
     errStatus_.clear();
     colNames_.clear();
     colNameMap_.clear();
@@ -109,6 +125,7 @@ void Table::addCol(const std::string& colName) {
         sprintf(buf, "%s_col%d", colName.c_str(), colIdx);
         modColName = std::string(buf);
     }
+    printf("-- addCol(\"%s\") puts { \"%s\", %d }\n", colName.c_str(), modColName.c_str(), colIdx);
     colNames_.push_back(modColName);
     colNameMap_[modColName] = colIdx;
 }
