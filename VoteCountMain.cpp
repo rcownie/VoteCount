@@ -235,7 +235,7 @@ public:
         }
     }
     
-    std::string mapString(const std::string& val) {
+    std::string mapString(const std::string& val) const {
         // FIXME: need county name
         for (auto& rule : rules_) {
             if (isMatchingStr(rule.matchCase_, rule.oldName_, val)) {
@@ -377,6 +377,15 @@ void transformTables(
         if (optVerbose) printf("reading %s ...\n", srcFile.c_str());
         const char* htmlOrCsv = (strstr(srcFile.c_str(), ".htm") ? "html" : "csv");
         Table countyA(htmlOrCsv, srcFile);
+        const char* fname = srcFile.c_str();
+        const char* endCounty = strstr(fname, "precinct");
+        while ((endCounty > fname) && (endCounty[-1] == '_')) --endCounty;
+        const char* beginCounty = endCounty;
+        while ((beginCounty > fname) && (beginCounty[-1] != '_')) --beginCounty;
+        char countyBuf[512];
+        strncmp(countyBuf, beginCounty, endCounty-beginCounty);
+        countyBuf[beginCounty-endCounty] = 0;
+        std::string guessCounty(countyBuf);
         //
         // First transformation is to apply colNameMap
         //
@@ -433,8 +442,8 @@ void transformTables(
                                 auto analyzeVal = row[analyzeCol].getString();
                                 oneColSummary.insert(analyzeVal);
                             }
-                            return false;
                         }
+                        return false;
                     }
                 );
             }
@@ -444,6 +453,7 @@ void transformTables(
             //
             auto colCounty    = countyB.findColIdx("County");
             auto colPrecinct  = countyB.findColIdx("PrecinctName");
+            auto colRace      = countyB.findColIdx("Race");
             auto colCandidate = countyB.findColIdx("Candidate");
             std::vector<int> validCols;
             std::vector<int> invalidCols;
@@ -471,11 +481,18 @@ void transformTables(
                 }
             }
             StringMap candidateValueMap(confTab, stateId, "Candidate");
+            StringMap raceValueMap(confTab, stateId, "Race");
             countyB.scanRows(
-                [=,&candidateValueMap,&candidateMap,&precinctMap](const TableRow& row)->bool {
-                    auto valCounty = row[colCounty].getString();
+                [=,&raceValueMap,&candidateValueMap,&candidateMap,&precinctMap](const TableRow& row)->bool {
+                    auto valCounty = ((colCounty >= 0) ? row[colCounty].getString() : guessCounty);
                     auto valPrecinct = row[colPrecinct].getString();
                     if ((valPrecinct == "") || isMatchingStr(false, valPrecinct, "total")) {
+                        return false;
+                    }
+                    auto valRace = ((colRace >= 0) ? row[colRace].getString() : "President");
+                    valRace = raceValueMap.mapString(valRace);
+                    if (!isMatchingStr(false, valRace, "president") &&
+                        !isMatchingStr(false, valRace, "electors for president & vice president")) {
                         return false;
                     }
                     auto valCandidate = row[colCandidate].getString();
@@ -525,6 +542,7 @@ void transformTables(
                             precinctVotes.colAdd(iterB->second, numInvalid);
                         }
                     }
+                    return false;
                 }
             );
         }
