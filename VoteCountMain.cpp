@@ -22,6 +22,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 #include "Table.h"
+#include <map>
 #include <set>
 #include <unordered_map>
 #include <sstream>
@@ -90,6 +91,14 @@ public:
         precinct_ = b.precinct_;
     }
     
+    const std::string& getCounty() const {
+        return county_;
+    }
+    
+    const std::string& getPrecinct() const {
+        return precinct_;
+    }
+    
     bool operator==(const CountyPrecinct& b) const {
         return((county_ == b.county_) && (precinct_ == b.precinct_));
     }
@@ -114,8 +123,14 @@ public:
         vec_[idx] += val;
     }
     
-    int colGet(int idx) {
+    int colGet(int idx) const {
         return((idx < vec_.size()) ? vec_[idx] : 0);
+    }
+    
+    int getTotal() const {
+        int total = 0;
+        for (auto val : vec_) total += val;
+        return(total);
     }
 };
 
@@ -128,6 +143,37 @@ public:
         return map_[CountyPrecinct(county, precinct)];
     }
     
+    void genOutput(FILE* out, const std::unordered_map<std::string, int>& candidateMap) {
+        std::vector<std::string> colNames;
+        colNames.push_back("County");
+        colNames.push_back("Precinct");
+        colNames.push_back("Race");
+        colNames.push_back("TotalVotes");
+        size_t baseIdx = colNames.size();
+        for (auto& pairA : candidateMap) {
+            size_t idx = (baseIdx + pairA.second);
+            while (colNames.size() <= idx) colNames.push_back("");
+            colNames[idx] = pairA.first;
+        }
+        for (size_t j = 0; j < colNames.size(); ++j) {
+            if (j > 0) fprintf(out, "\t");
+            fprintf(out, "%s", colNames[j].c_str());
+        }
+        fprintf(out, "\n");
+        for (auto& pairB : map_) {
+            fprintf(out, "%s\t", pairB.first.getCounty().c_str());
+            fprintf(out, "%s\t", pairB.first.getPrecinct().c_str());
+            fprintf(out, "%s\t", "President");
+            auto& precinctVotes = pairB.second;
+            fprintf(out, "%d\t", precinctVotes.getTotal());
+            for (size_t idx = baseIdx; idx < colNames.size(); ++idx) {
+                fprintf(out, "%d", precinctVotes.colGet(idx-baseIdx));
+                if (idx+1 < colNames.size()) fprintf(out, "\t");
+            }
+            fprintf(out, "\n");
+        }
+        fclose(out);
+    }
 };
 
 class ColumnNameMap {
@@ -289,7 +335,7 @@ std::unordered_map<std::string, int> getConfCandidates(const Table& confTab, std
     auto colActionOrColumn = confTab.findColIdx("ActionOrColumn");
     auto colMapTo          = confTab.findColIdx("MapTo");
     confTab.scanRows(
-        [=,&candidateSet](const TableRow& row)->bool {
+        [=,&candidateMap](const TableRow& row)->bool {
             if (row[colActionOrColumn].getString() != "!Candidate") {
                 return false;
             }
@@ -303,9 +349,15 @@ std::unordered_map<std::string, int> getConfCandidates(const Table& confTab, std
             }
             return false;
         }
-    )
-    candidateMap
-    return(candidateSet);
+    );
+    int newIdx = candidateMap.size();
+    if (candidateMap.find("Other") == candidateMap.end()) {
+        candidateMap["Other"] = newIdx++;
+    }
+    if (candidateMap.find("Invalid") == candidateMap.end()) {
+        candidateMap["Invalid"] = newIdx++;
+    }
+    return(candidateMap);
 }
 
 void transformTables(
@@ -394,7 +446,30 @@ void transformTables(
             auto colPrecinct  = countyB.findColIdx("PrecinctName");
             auto colCandidate = countyB.findColIdx("Candidate");
             std::vector<int> validCols;
-            std::vector<int invalidCols>
+            std::vector<int> invalidCols;
+            std::vector<const char*> validColNames({
+                "ElectionDayVotes",
+                "Votes",
+                "absentee",
+                "absentee_affidavit",
+                "absentee_hc",
+                "absentee_military_votes",
+                "affidavit",
+                "affidavit_votes",
+                "emergency_votes",
+                "federal_votes",
+                "machine_votes",
+                "manually_counted_emergency",
+                "public_counter_votes",
+                "special_presidential",
+                "votes",
+            });
+            for (auto colName : validColNames) {
+                auto colIdx = countyB.findColIdx(colName);
+                if (colIdx >= 0) {
+                    validCols.push_back(colIdx);
+                }
+            }
             countyB.scanRows(
                 [=,&candidateMap,&precinctMap](const TableRow& row)->bool {
                     auto valCounty = row[colCounty].getString();
@@ -413,7 +488,7 @@ void transformTables(
                         }
                         iter = candidateMap.find(valCandidate);
                     }
-                    int candidateIdx = iter->second();
+                    int candidateIdx = iter->second;
                     int64_t numValid = 0;
                     for (auto col : validCols) {
                         numValid += row[col].getInt();
@@ -454,6 +529,7 @@ void transformTables(
         //
         // Output the real accumulated results
         //
+        precinctMap.genOutput(out, candidateMap);
     }
 }
 
