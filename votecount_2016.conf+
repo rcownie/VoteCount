@@ -57,10 +57,24 @@ ANY,ANY,Candidate,NO,"McMullin","EVAN MCMULLEN"
 ANY,ANY,Candidate,NO,"McMullin","EVAN MCMULLIN"
 ANY,ANY,Candidate,NO,"Castle","Darrell Castle"
 ANY,ANY,Candidate,NO,"Castle","CARRELL CASTLE"
+ANY,ANY,Candidate,NO,"Other","write-in"
+ANY,ANY,Candidate,NO,"Other","write-ins"
+ANY,ANY,Candidate,NO,"Other","other write-ins"
+ANY,ANY,Candidate,NO,"Invalid","unqualified write ins"
+ANY,ANY,Candidate,NO,"Invalid","unqualified write-ins"
+ANY,ANY,Candidate,NO,"Invalid","blank"
+ANY,ANY,Candidate,NO,"Invalid","blanks"
+ANY,ANY,Candidate,NO,"Invalid","blank/over votes"
+ANY,ANY,Candidate,NO,"Invalid","anonymous"
+ANY,ANY,Candidate,NO,"Invalid","nobody"
+ANY,ANY,Candidate,NO,"Invalid","no body"
+ANY,ANY,Candidate,NO,"Invalid","no confidence"
+ANY,ANY,Candidate,NO,"Invalid","none of above"
 #
 # KS (Kansas) state-specific
 #
 KS,ANY,!MapColumn,NO,"PrecinctName","Precinct"
+KS,ANY,!MapColumn,NO,"Votes","Votes"
 #
 # NY (NewYork) state-specific
 #

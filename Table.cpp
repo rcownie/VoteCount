@@ -101,12 +101,12 @@ void Table::clear() {
 
 void Table::addCol(const std::string& colName) {
     assert(rowVec_.empty());
-    assert(colNameMap_.count(colName) == 0);
+    //assert(colNameMap_.count(colName) == 0);
     int colIdx = colNames_.size();
     std::string modColName = colName;
-    if (colName == "") {
-        char buf[16];
-        sprintf(buf, "_column%d", colIdx);
+    if ((colName == "") || (colNameMap_.count(modColName) > 0)) {
+        char buf[512];
+        sprintf(buf, "%s_col%d", colName.c_str(), colIdx);
         modColName = std::string(buf);
     }
     colNames_.push_back(modColName);

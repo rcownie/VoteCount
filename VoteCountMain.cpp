@@ -23,6 +23,7 @@
 //
 #include "Table.h"
 #include <set>
+#include <unordered_map>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,9 +72,63 @@ bool isTrueOrYes(const std::string& s) {
     return false;
 }
 
-//
-// This reads
-//
+class CountyPrecinct {
+private:
+    std::string county_;
+    std::string precinct_;
+
+public:
+    CountyPrecinct(const std::string& county, const std::string& precinct) :
+        county_(county),
+        precinct_(precinct) {
+    }
+    
+    CountyPrecinct(const CountyPrecinct& b) = default;
+    
+    CountyPrecinct& operator=(const CountyPrecinct& b) {
+        county_ = b.county_;
+        precinct_ = b.precinct_;
+    }
+    
+    bool operator==(const CountyPrecinct& b) const {
+        return((county_ == b.county_) && (precinct_ == b.precinct_));
+    }
+    
+    bool operator<(const CountyPrecinct& b) const {
+        return(
+            (county_ < b.county_) ||
+            ((county_ == b.county_) && (precinct_ < b.precinct_))
+        );
+    }
+};
+
+class PrecinctVotes {
+private:
+    std::vector<int> vec_;
+
+public:
+    void colAdd(int idx, int val) {
+        while (vec_.size() < idx+1) {
+            vec_.push_back(0);
+        }
+        vec_[idx] += val;
+    }
+    
+    int colGet(int idx) {
+        return((idx < vec_.size()) ? vec_[idx] : 0);
+    }
+};
+
+class PrecinctMap {
+public:
+    std::map<CountyPrecinct, PrecinctVotes> map_;
+
+public:
+    PrecinctVotes& findPrecinct(const std::string& county, const std::string& precinct) {
+        return map_[CountyPrecinct(county, precinct)];
+    }
+    
+};
 
 class ColumnNameMap {
 private:
@@ -228,6 +283,31 @@ void checkConfTable(const Table& confTab) {
     }
 }
 
+std::unordered_map<std::string, int> getConfCandidates(const Table& confTab, std::string stateId) {
+    std::unordered_map<std::string, int> candidateMap;
+    auto colState          = confTab.findColIdx("State");
+    auto colActionOrColumn = confTab.findColIdx("ActionOrColumn");
+    auto colMapTo          = confTab.findColIdx("MapTo");
+    confTab.scanRows(
+        [=,&candidateSet](const TableRow& row)->bool {
+            if (row[colActionOrColumn].getString() != "!Candidate") {
+                return false;
+            }
+            auto valState = row[colState].getString();
+            if ((valState == "ANY") || (valState == stateId)) {
+                auto iter = candidateMap.find(row[colMapTo].getString());
+                if (iter == candidateMap.end()) {
+                    int newIdx = candidateMap.size();
+                    candidateMap[row[colMapTo].getString()] = newIdx;
+                }
+            }
+            return false;
+        }
+    )
+    candidateMap
+    return(candidateSet);
+}
+
 void transformTables(
     FILE* out,
     const Table& confTab,
@@ -239,8 +319,10 @@ void transformTables(
     ColumnValueSummary oneColSummary;
     
     ColumnNameMap colNameMap(confTab, stateId);
+    auto candidateMap = getConfCandidates(confTab, stateId);
+    PrecinctMap precinctMap;
     for (auto& srcFile : srcFiles) {
-        printf("reading %s ...\n", srcFile.c_str());
+        if (optVerbose) printf("reading %s ...\n", srcFile.c_str());
         const char* htmlOrCsv = (strstr(srcFile.c_str(), ".htm") ? "html" : "csv");
         Table countyA(htmlOrCsv, srcFile);
         //
@@ -308,6 +390,54 @@ void transformTables(
             //
             // Accumulating the real results
             //
+            auto colCounty    = countyB.findColIdx("County");
+            auto colPrecinct  = countyB.findColIdx("PrecinctName");
+            auto colCandidate = countyB.findColIdx("Candidate");
+            std::vector<int> validCols;
+            std::vector<int invalidCols>
+            countyB.scanRows(
+                [=,&candidateMap,&precinctMap](const TableRow& row)->bool {
+                    auto valCounty = row[colCounty].getString();
+                    auto valPrecinct = row[colPrecinct].getString();
+                    if ((valPrecinct == "") || isMatchingStr(false, valPrecinct, "total")) {
+                        return false;
+                    }
+                    auto valCandidate = row[colCandidate].getString();
+                    auto iter = candidateMap.find(valCandidate);
+                    if (iter == candidateMap.end()) {
+                        if (isMatchingStr(false, valCandidate, "total")) return false;
+                        if (valCandidate == "") {
+                            valCandidate = "Invalid";
+                        } else {
+                            valCandidate = "Other";
+                        }
+                        iter = candidateMap.find(valCandidate);
+                    }
+                    int candidateIdx = iter->second();
+                    int64_t numValid = 0;
+                    for (auto col : validCols) {
+                        numValid += row[col].getInt();
+                    }
+                    int64_t numInvalid = 0;
+                    for (auto col : invalidCols) {
+                        numInvalid += row[col].getInt();
+                    }
+                    if (valCandidate == "Invalid") {
+                        numInvalid += numValid;
+                        numValid = 0;
+                    }
+                    auto& precinctVotes = precinctMap.findPrecinct(valCounty, valPrecinct);
+                    if (numValid > 0) {
+                        precinctVotes.colAdd(candidateIdx, numValid);
+                    }
+                    if (numInvalid > 0) {
+                        auto iterB = candidateMap.find("Invalid");
+                        if (iterB != candidateMap.end()) {
+                            precinctVotes.colAdd(iterB->second, numInvalid);
+                        }
+                    }
+                }
+            );
         }
     }
     if (optAnalyzeCol != nullptr) {
@@ -358,7 +488,6 @@ int main(int argc, char* argv[]) {
                     usage();
             }
         } else {
-            printf("fileName \"%s\"\n", a);
             fileNames.push_back(a);
         }
     }

@@ -21,7 +21,7 @@ CXXFLAGS := -std=c++11 -ggdb -O0
 
 PROGRAMS := votecount uncomment
 
-RESULTS  := ks_2016.csv ny_2016.csv 
+RESULTS  := ks_2016.csv ks_cols.txt ks_vals.txt ny_2016.csv ny_cols.txt ny_vals.txt
 
 all: $(PROGRAMS) votecount_2016.conf $(RESULTS)
 
@@ -42,14 +42,27 @@ votecount_2016.conf: uncomment votecount_2016.conf+
 
 DATADIR_NY := /localssd/rcownie/openelections-data-ny/2016
 
+ny_cols.txt: votecount Makefile
+	votecount -a NoColumn -c empty.conf -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
+
+ny_vals.txt: votecount Makefile
+	votecount -a Candidate -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
+
 ny_2016.csv: votecount
 	echo "votecount -a Candidate -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
-	
+
+DATADIR_KS := /localssd/rcownie/openelections-data-ks/2016
+
+ks_cols.txt: votecount Makefile
+	votecount -a NoColumn -c empty.conf -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
+
+ks_vals.txt: votecount Makefile
+	votecount -a Candidate -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
 
 ks_2016.csv: votecount
-	echo "votecount -a Candidate -s ks data/ks/2016_general_precinct.html" >a.gdb
+	echo "votecount -a Candidate -s ks $(DATADIR_KS)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
 
