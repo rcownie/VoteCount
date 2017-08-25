@@ -176,7 +176,7 @@ public:
     }
 };
 
-class ColumnNameMap {
+class StringMap {
 private:
     class Rule {
     public:
@@ -198,7 +198,7 @@ private:
 
     std::vector<Rule> rules_;
 public:
-    ColumnNameMap(const Table& confTab, const std::string& stateId) {
+    StringMap(const Table& confTab, const std::string& stateId, const std::string& actionOrColumn) {
         auto colState  = confTab.findColIdx("State");
         auto colCounty = confTab.findColIdx("County");
         auto colActionOrColumn = confTab.findColIdx("ActionOrColumn");
@@ -208,7 +208,7 @@ public:
         for (int phase = 0; phase < 3; ++phase) {
             confTab.scanRows(
                 [=](const TableRow& row)->bool {
-                    if (row[colActionOrColumn].getString() == "!MapColumn") {
+                    if (row[colActionOrColumn].getString() == actionOrColumn) {
                         auto valState = row[colState].getString();
                         if ((valState != "ANY") && !isMatchingStr(false, valState, stateId)) {
                             // ignore rules specific to other states
@@ -235,17 +235,17 @@ public:
         }
     }
     
-    std::string mapColumnName(const std::string& colName) {
+    std::string mapString(const std::string& val) {
         // FIXME: need county name
         for (auto& rule : rules_) {
-            if (isMatchingStr(rule.matchCase_, rule.oldName_, colName)) {
+            if (isMatchingStr(rule.matchCase_, rule.oldName_, val)) {
                 // The rules are in priority order, so the first rule that matches
                 // is the correct value.  Hmm, should we also allow further remapping
                 // by lower-priority rules ?  Keep it simple for now ...
                 return(rule.newName_);
             }
         }
-        return(colName);
+        return(val);
     }
 };
 
@@ -370,7 +370,7 @@ void transformTables(
     std::set<std::string> allColNames;
     ColumnValueSummary oneColSummary;
     
-    ColumnNameMap colNameMap(confTab, stateId);
+    StringMap colNameMap(confTab, stateId, "!MapColumn");
     auto candidateMap = getConfCandidates(confTab, stateId);
     PrecinctMap precinctMap;
     for (auto& srcFile : srcFiles) {
@@ -382,7 +382,7 @@ void transformTables(
         //
         auto newColNamesA = countyA.getColNames();
         for (size_t idx = 0; idx < newColNamesA.size(); ++idx) {
-            newColNamesA[idx] = colNameMap.mapColumnName(newColNamesA[idx]);
+            newColNamesA[idx] = colNameMap.mapString(newColNamesA[idx]);
         }
         std::vector<TableRowStringFunc> newColFuncsA;
         for (size_t idxA = 0; idxA < newColNamesA.size(); ++idxA) {
@@ -470,17 +470,31 @@ void transformTables(
                     validCols.push_back(colIdx);
                 }
             }
+            StringMap candidateValueMap(confTab, stateId, "Candidate");
             countyB.scanRows(
-                [=,&candidateMap,&precinctMap](const TableRow& row)->bool {
+                [=,&candidateValueMap,&candidateMap,&precinctMap](const TableRow& row)->bool {
                     auto valCounty = row[colCounty].getString();
                     auto valPrecinct = row[colPrecinct].getString();
                     if ((valPrecinct == "") || isMatchingStr(false, valPrecinct, "total")) {
                         return false;
                     }
                     auto valCandidate = row[colCandidate].getString();
+                    //
+                    // Apply the right mapping rules here, before looking up the name
+                    // in the table of canonical candidates.
+                    //
+                    valCandidate = candidateValueMap.mapString(valCandidate);                    
+                    //
+                    // Check for rows with candidate-names which have been mapped to "Ignore",
+                    // this is used to skip rows with partial sums or totals, rather than
+                    // votes for individual candidates.
+                    //
+                    if (isMatchingStr(false, valCandidate, "Ignore")) {
+                        // Some files contain precinct partial totals, which should be ignored,
+                        return false;
+                    }
                     auto iter = candidateMap.find(valCandidate);
                     if (iter == candidateMap.end()) {
-                        if (isMatchingStr(false, valCandidate, "total")) return false;
                         if (valCandidate == "") {
                             valCandidate = "Invalid";
                         } else {

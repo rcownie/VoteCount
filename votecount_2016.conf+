@@ -70,6 +70,14 @@ ANY,ANY,Candidate,NO,"Invalid","nobody"
 ANY,ANY,Candidate,NO,"Invalid","no body"
 ANY,ANY,Candidate,NO,"Invalid","no confidence"
 ANY,ANY,Candidate,NO,"Invalid","none of above"
+ANY,ANY,Candidate,NO,"Invalid","under votes"
+ANY,ANY,Candidate,NO,"Invalid","undervotes"
+ANY,ANY,Candidate,NO,"Invalid","void"
+ANY,ANY,Candidate,NO,"Invalid","voids"
+ANY,ANY,Candidate,NO,"Ignore","total"
+ANY,ANY,Candidate,NO,"Ignore","total special votes"
+ANY,ANY,Candidate,NO,"Ignore","total votes"
+ANY,ANY,Candidate,NO,"Ignore","total votes cast"
 #
 # KS (Kansas) state-specific
 #

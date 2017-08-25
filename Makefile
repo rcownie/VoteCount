@@ -46,10 +46,10 @@ ny_cols.txt: votecount Makefile
 	votecount -a NoColumn -c empty.conf -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
 
 ny_vals.txt: votecount Makefile
-	votecount -a ElectionDayVotes -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
+	votecount -a absentee_affidavit -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
 
 ny_2016.csv: votecount
-	echo "votecount -a Candidate -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
+	echo "votecount -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
 
