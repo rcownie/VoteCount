@@ -81,7 +81,7 @@ bool isSameStr(const std::string& a, const std::string& b) {
 }
 
 int Table::findColIdx(const std::string& colName) const {
-#if 0
+#if 1
     auto iter = colNameMap_.find(colName);
     auto colIdx = ((iter == colNameMap_.end()) ? -1 : iter->second);
 #else
@@ -92,7 +92,7 @@ int Table::findColIdx(const std::string& colName) const {
         if (isSameStr(colNames_[colIdx], colName)) break;
     }
 #endif
-    printf("-- findColIdx(\"%s\") -> %d\n", colName.c_str(), colIdx);
+    //printf("-- findColIdx(\"%s\") -> %d\n", colName.c_str(), colIdx);
     return(colIdx);
 }
 
@@ -100,6 +100,7 @@ bool Table::scanRows(TableRowBoolFunc scanRowFunc) const {
     for (auto& row : rowVec_) {
         if (scanRowFunc(row)) return true;
     }
+    std::set<std::string> allColNames;
     return false;
 }
 
@@ -108,7 +109,6 @@ void Table::clearRows() {
 }
 
 void Table::clear() {
-    printf("-- Table::clear()\n");
     errStatus_.clear();
     colNames_.clear();
     colNameMap_.clear();
@@ -125,7 +125,9 @@ void Table::addCol(const std::string& colName) {
         sprintf(buf, "%s_col%d", colName.c_str(), colIdx);
         modColName = std::string(buf);
     }
-    printf("-- addCol(\"%s\") puts { \"%s\", %d }\n", colName.c_str(), modColName.c_str(), colIdx);
+    if (colName[0] == ' ') {
+        assert(0);
+    }
     colNames_.push_back(modColName);
     colNameMap_[modColName] = colIdx;
 }
@@ -297,7 +299,9 @@ void Table::populateWithHTML(const std::string& fileName) {
                     } else {
                         haveHeader = true;
                         for (auto& cell : curRow) {
-                            addCol(cell.getString());
+                            const char* p = cell.getString().c_str();
+                            while (*p == ' ') ++p;
+                            addCol(std::string(p));
                         }
                     }
                     curRow.clear();
@@ -388,7 +392,7 @@ void Table::populateWithCSV(const std::string& fileName) {
                         }
                         for (int idx = curRow.size(); --idx >= (int)colNames_.size();) {
                             //
-                            // Ignore any empty or "0" values
+                            // Ignore any trailing empty or "0" values
                             //
                             auto val = curRow[idx].getString();
                             if ((val == "") || (val == "0")) {
@@ -402,7 +406,12 @@ void Table::populateWithCSV(const std::string& fileName) {
                         haveHeader = true;
                         //printf("DEBUG: header row size %lu\n", curRow.size());
                         for (auto& cell : curRow) {
-                            addCol(cell.getString());
+                            const char* p = cell.getString().c_str();
+                            //
+                            // Skip whitespace and unprintable characters at start of column name
+                            //
+                            while ((*p <= ' ') || (*p & 0x80)) ++p;
+                            addCol(std::string(p));
                         }
                     }
                     curRow.clear();
