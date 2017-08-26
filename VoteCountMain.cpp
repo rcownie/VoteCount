@@ -401,6 +401,16 @@ bool stringEndsWithTotal(const std::string& str) {
     return true;
 }
 
+bool isCountySpaceState(const std::string& str, const std::string& county, const std::string stateId) {
+    char buf[512];
+    sprintf(buf, "%s %s", county.c_str(), stateId.c_str());
+    for (char* p = buf; *p != 0; ++p) {
+        if (('a' <= *p) && (*p <= 'z')) *p += 'A'-'a';
+    }
+    if (strcmp(str.c_str(), buf) != 0) return false;
+    return true;
+}
+
 void transformTables(
     FILE* out,
     const Table& confTab,
@@ -547,9 +557,12 @@ void transformTables(
                         //printf("-- use guessCounty %s\n", guessCounty.c_str());
                     }
                     auto valPrecinct = row[colPrecinct].getString();
-                    if ((valPrecinct == "") ||
+                    if (
+                        (valPrecinct == "") ||
                         (valPrecinct == valCounty) || // "COWLEY KS" uses this as county-total
-                        stringEndsWithTotal(valPrecinct)) {
+                        stringEndsWithTotal(valPrecinct) ||
+                        isCountySpaceState(valPrecinct, valCounty, stateId)
+                    ) {
                         //fprintf(stderr, "DEBUG: skip precinct '%s'\n", valPrecinct.c_str());
                         return false;
                     }

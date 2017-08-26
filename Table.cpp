@@ -329,12 +329,23 @@ void Table::populateWithCSV(const std::string& fileName) {
         return;
     }
     bool addAnonymousColumns = true;
+    bool skipFirst3 = false;
     //
     // Read first line to guess whether separator is comma or tab
     //
     int fieldSep = '\t';
     char lineBuf[4*1024];
     char* p = fgets(lineBuf, sizeof(lineBuf)-1, f);
+    //
+    // Some Windows CSV files start with 3 binary bytes 0xef 0xbb 0xef
+    //
+    if (p &&
+        ((p[0] & 0xff) == 0xef) &&
+        ((p[1] & 0xff) == 0xbb) &&
+        ((p[2] & 0xff) == 0xef)) {
+        skipFirst3 = true;
+        p += 3;
+    }
     int numComma = 0;
     int numTab = 0;
     if (p) {
@@ -345,6 +356,9 @@ void Table::populateWithCSV(const std::string& fileName) {
         if (numComma > numTab) fieldSep = ',';
     }
     rewind(f);
+    if (skipFirst3) {
+        for (int j = 0; j < 3; ++j) { (void)fgetc(f); }
+    }
     //
     // Simple state machine copes with different line-ending
     //
