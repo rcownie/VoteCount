@@ -411,6 +411,91 @@ bool isCountySpaceState(const std::string& str, const std::string& county, const
     return true;
 }
 
+//
+// Some tricky analysis here - we start with a vector of column names identifying
+// a set of columns relating to votes.  But then we look at the data to determine
+// which columns appear to be sums of other columns, and exclude those sums so that
+// we don't double-count the votes.
+//
+// Then we pass back the pruned vector of colIdx's
+//
+
+std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<const char*>& voteColNames) {
+    std::set<int> voteColSet;
+    std::unordered_map<std::string, int> tabColMap;
+    auto tabColNames = tab.getColNames();
+    for (size_t colIdx = 0; colIdx < tabColNames.size(); ++colIdx) {
+        tabColMap[toLower(tabColNames[colIdx].c_str())] = colIdx;
+    }
+    for (auto voteColName : voteColNames) {
+        auto iter = tabColMap.find(toLower(voteColName));
+        if (iter != tabColMap.end()) {
+            printf("DEBUG: voteColSet size %lu colName '%s' %d\n", voteColSet.size()+1, voteColName, iter->second);
+            voteColSet.insert(iter->second);
+        }
+    }
+    std::vector<int> voteCols;
+    for (auto col : voteColSet) {
+        voteCols.push_back(col);
+    }
+    if (voteCols.size() == 1) { // only one vote column
+        return(voteCols);
+    }
+    printf("DEBUG: voteCols.size %lu\n", voteCols.size());
+    //
+    // Find columns which might possibly be the sum
+    //
+    std::set<int> sumCols;
+    int voteColMax = -1;
+    for (auto voteCol : voteCols) {
+        sumCols.insert(voteCol);
+        if (voteColMax < voteCol) voteColMax = voteCol;
+    }
+    //
+    // Each row may exclude some sumCol's
+    //
+    std::vector<int> rowVals(voteColMax+1);
+    for (size_t j = 0; j <= voteColMax; ++j) {
+        rowVals[j] = 0;
+    }
+    int rowIdx = 0;
+    tab.scanRows(
+        [&](const TableRow& row)->bool {
+            ++rowIdx;
+            int sumVals = 0;
+            for (auto voteCol : voteCols) {
+                int val = row[voteCol].getInt();
+                rowVals[voteCol] = val;
+                ++sumVals += val;
+            }
+            std::vector<int> notSumCols;
+            for (auto sumCol : sumCols) {
+                if (sumVals != 2*rowVals[sumCol]) {
+                    // sumCol doesn't match sum of other voteCols
+                    printf("DEBUG: erase sumCol %d at row %d sumVals %d rowVals[sumCol] %d\n",
+                           sumCol, rowIdx, sumVals, rowVals[sumCol]);
+                    notSumCols.push_back(sumCol); 
+                }
+            }
+            for (auto col : notSumCols) {
+                sumCols.erase(col);
+            }
+            return false;
+        }
+    );
+    printf("DEBUG: sumCols.size %lu\n", sumCols.size());
+    //
+    // Return the set of voteCols, excluding any sumCols
+    //
+    std::vector<int> prunedCols;
+    for (auto col : voteCols) {
+        if (sumCols.find(col) != sumCols.end()) {
+            prunedCols.push_back(col);
+        }
+    }
+    return(prunedCols);
+}
+
 void transformTables(
     FILE* out,
     const Table& confTab,
@@ -507,40 +592,38 @@ void transformTables(
             auto colPrecinct  = countyB.findColIdx("PrecinctName");
             auto colRace      = countyB.findColIdx("Race");
             auto colCandidate = countyB.findColIdx("Candidate");
-            std::vector<int> validCols;
-            std::vector<int> invalidCols;
-            std::vector<const char*> validColNames({
-                "ElectionDayVotes",
-                "Votes",
-                "absentee",
-                "absentee_affidavit",
-                "absentee_hc",
-                "absentee_military_votes",
-                "absentee_votes",
-                "advance_votes",
-                "affidavit",
-                "affidavit_votes",
-                "election_day",
-                "emergency_votes",
-                "federal_votes",
-                "machine_votes",
-                "manually_counted_emergency",
-                "military_votes",
-                "paper_votes",
-                "poll_votes",
-                "polling_votes",
-                "provisional",
-                "provisional_votes",
-                "public_counter_votes",
-                "special_presidential",
-                "vote",
-                "votes",
-            });
-            for (auto colName : validColNames) {
-                auto colIdx = countyB.findColIdx(colName);
-                if (colIdx >= 0) {
-                    validCols.push_back(colIdx);
-                }
+            std::vector<int> validCols = findVoteColsWithoutSums(
+                countyB,
+                { "vote", "votes" }
+            );
+            if (validCols.size() != 1) {
+                validCols = findVoteColsWithoutSums(
+                    countyB,
+                    {
+                        "absentee",
+                        "absentee_affidavit",
+                        "absentee_hc",
+                        "absentee_military_votes",
+                        "absentee_votes",
+                        "advance_votes",
+                        "affidavit",
+                        "affidavit_votes",
+                        "election_day",
+                        "electiondayvotes",
+                        "emergency_votes",
+                        "federal_votes",
+                        "machine_votes",
+                        "manually_counted_emergency",
+                        "military_votes",
+                        "paper_votes",
+                        "poll_votes",
+                        "polling_votes",
+                        "provisional",
+                        "provisional_votes",
+                        "public_counter_votes",
+                        "special_presidential",
+                    }
+                );
             }
             StringMap candidateValueMap(confTab, stateId, "Candidate");
             StringMap raceValueMap(confTab, stateId, "Race");
@@ -602,9 +685,11 @@ void transformTables(
                         numValid += row[col].getInt();
                     }
                     int64_t numInvalid = 0;
+                    /*
                     for (auto col : invalidCols) {
                         numInvalid += row[col].getInt();
                     }
+                     */
                     if (valCandidate == "Invalid") {
                         numInvalid += numValid;
                         numValid = 0;

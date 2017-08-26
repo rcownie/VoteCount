@@ -49,7 +49,7 @@ ny_vals.txt: votecount Makefile
 	votecount -a Candidate -s ny $(DATADIR_NY)/*_general_*precinct.csv >$@
 
 ny_2016.csv: votecount
-	echo "votecount -o $@ -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
+	echo "votecount -o $@ -v -s ny $(DATADIR_NY)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
 
@@ -62,7 +62,7 @@ ks_vals.txt: votecount Makefile
 	votecount -a Candidate -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
 
 ks_2016.csv: votecount
-	echo "votecount -o $@ -s ks $(DATADIR_KS)/*_general_*precinct.csv" >a.gdb
+	echo "votecount -o $@ -v -s ks $(DATADIR_KS)/*_general_*precinct.csv" >a.gdb
 	bash a.gdb
 	#gdb votecount -x a.gdb
 
