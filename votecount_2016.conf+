@@ -114,6 +114,7 @@ ANY,ANY,Candidate,NO,"Ignore","total"
 ANY,ANY,Candidate,NO,"Ignore","total special votes"
 ANY,ANY,Candidate,NO,"Ignore","total votes"
 ANY,ANY,Candidate,NO,"Ignore","total votes cast"
+ANY,ANY,Candidate,NO,"Ignore","registered voters"
 #
 # KS (Kansas) state-specific
 #
