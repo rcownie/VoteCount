@@ -161,7 +161,7 @@ public:
         }
         fprintf(out, "\n");
         std::map<std::string, PrecinctVotes> countyMap;
-        int stateTotal = 0;
+        PrecinctVotes stateVotes;
         for (auto& pairB : map_) {
             fprintf(out, "%s\t", pairB.first.getCounty().c_str());
             fprintf(out, "%s\t", pairB.first.getPrecinct().c_str());
@@ -169,38 +169,42 @@ public:
             auto& countyVotes = countyMap[pairB.first.getCounty()];
             auto& precinctVotes = pairB.second;
             fprintf(out, "%d\t", precinctVotes.getTotal());
-            stateTotal += precinctVotes.getTotal();
             for (size_t idx = baseIdx; idx < colNames.size(); ++idx) {
                 int votes = precinctVotes.colGet(idx-baseIdx);
                 countyVotes.colAdd(idx-baseIdx, votes);
-                fprintf(out, "%d", precinctVotes.colGet(idx-baseIdx));
+                stateVotes.colAdd(idx-baseIdx, votes);
+                fprintf(out, "%d", votes);
                 if (idx+1 < colNames.size()) fprintf(out, "\t");
             }
             fprintf(out, "\n");
         }
         fclose(out);
         FILE* f = fopen("county.csv", "w");
-        fprintf(f, "County\t");
-        fprintf(f, "TotalVotes\t");
-        baseIdx = 2;
         for (size_t j = 0; j < colNames.size(); ++j) {
+            if ((j == 1) || (j == 2)) continue;
             if (j > 0) fprintf(f, "\t");
             fprintf(f, "%s", colNames[j].c_str());
         }
         fprintf(f, "\n");
         for (auto& pairC : countyMap) {
-            fprintf(f, "%s\t", pairC.first.c_str());
+            fprintf(f, "%-16s\t", pairC.first.c_str());
             auto& countyVotes = pairC.second;
-            fprintf(f, "%d\t", countyVotes.getTotal());
+            fprintf(f, "%6d\t", countyVotes.getTotal());
             for (size_t idx = baseIdx; idx < colNames.size()-2; ++idx) {
                 int votes = countyVotes.colGet(idx-baseIdx);
-                fprintf(f, "%d", votes);
+                fprintf(f, "%6d", votes);
                 if (idx+1 < colNames.size()) fprintf(f, "\t");
             }
             fprintf(f, "\n");
         }
         fclose(f);
-        fprintf(stderr, "StateTotalVotes %d\n", stateTotal);
+        fprintf(stderr, "StateTotals %6d %6d %6d %6d %6d\n", 
+            stateVotes.getTotal(),
+            stateVotes.colGet(0),
+            stateVotes.colGet(1),
+            stateVotes.colGet(2),
+            stateVotes.colGet(3)
+        );
     }
 };
 
