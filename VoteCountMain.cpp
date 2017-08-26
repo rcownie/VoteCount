@@ -430,7 +430,7 @@ std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<con
     for (auto voteColName : voteColNames) {
         auto iter = tabColMap.find(toLower(voteColName));
         if (iter != tabColMap.end()) {
-            printf("DEBUG: voteColSet size %lu colName '%s' %d\n", voteColSet.size()+1, voteColName, iter->second);
+            //printf("DEBUG: voteColSet size %lu colName '%s' %d\n", voteColSet.size()+1, voteColName, iter->second);
             voteColSet.insert(iter->second);
         }
     }
@@ -441,7 +441,7 @@ std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<con
     if (voteCols.size() == 1) { // only one vote column
         return(voteCols);
     }
-    printf("DEBUG: voteCols.size %lu\n", voteCols.size());
+    //printf("DEBUG: voteCols.size %lu\n", voteCols.size());
     //
     // Find columns which might possibly be the sum
     //
@@ -455,7 +455,7 @@ std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<con
     // Each row may exclude some sumCol's
     //
     std::vector<int> rowVals(voteColMax+1);
-    for (size_t j = 0; j <= voteColMax; ++j) {
+    for (int j = 0; j <= voteColMax; ++j) {
         rowVals[j] = 0;
     }
     int rowIdx = 0;
@@ -472,8 +472,8 @@ std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<con
             for (auto sumCol : sumCols) {
                 if (sumVals != 2*rowVals[sumCol]) {
                     // sumCol doesn't match sum of other voteCols
-                    printf("DEBUG: erase sumCol %d at row %d sumVals %d rowVals[sumCol] %d\n",
-                           sumCol, rowIdx, sumVals, rowVals[sumCol]);
+                    //printf("DEBUG: erase sumCol %d at row %d sumVals %d rowVals[sumCol] %d\n",
+                    //       sumCol, rowIdx, sumVals, rowVals[sumCol]);
                     notSumCols.push_back(sumCol); 
                 }
             }
@@ -483,7 +483,7 @@ std::vector<int> findVoteColsWithoutSums(const Table& tab, const std::vector<con
             return false;
         }
     );
-    printf("DEBUG: sumCols.size %lu\n", sumCols.size());
+    //printf("DEBUG: sumCols.size %lu\n", sumCols.size());
     //
     // Return the set of voteCols, excluding any sumCols
     //
