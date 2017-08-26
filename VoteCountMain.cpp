@@ -187,7 +187,7 @@ public:
             if (j > 0) fprintf(f, "\t");
             fprintf(f, "%s", colNames[j].c_str());
         }
-        fprintf(out, "\n");
+        fprintf(f, "\n");
         for (auto& pairC : countyMap) {
             fprintf(f, "%s\t", pairC.first.c_str());
             auto& countyVotes = pairC.second;
@@ -494,15 +494,23 @@ void transformTables(
                 "absentee_hc",
                 "absentee_military_votes",
                 "absentee_votes",
+                "advance_votes",
                 "affidavit",
                 "affidavit_votes",
+                "election_day",
                 "emergency_votes",
                 "federal_votes",
                 "machine_votes",
                 "manually_counted_emergency",
+                "military_votes",
+                "paper_votes",
+                "poll_votes",
                 "polling_votes",
+                "provisional",
+                "provisional_votes",
                 "public_counter_votes",
                 "special_presidential",
+                "vote",
                 "votes",
             });
             for (auto colName : validColNames) {
@@ -529,6 +537,7 @@ void transformTables(
                     if ((valPrecinct == "") ||
                         (valPrecinct == valCounty) || // "COWLEY KS" uses this as county-total
                         isMatchingStr(false, valPrecinct, "total")) {
+                        //fprintf(stderr, "DEBUG: skip precinct '%s'\n", valPrecinct.c_str());
                         return false;
                     }
                     auto valRace = ((colRace >= 0) ? row[colRace].getString() : "President");

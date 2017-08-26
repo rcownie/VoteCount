@@ -125,7 +125,7 @@ void Table::addCol(const std::string& colName) {
         sprintf(buf, "%s_col%d", colName.c_str(), colIdx);
         modColName = std::string(buf);
     }
-    if (colName[0] == ' ') {
+    if (colName[0] & 0x80) {
         assert(0);
     }
     colNames_.push_back(modColName);
