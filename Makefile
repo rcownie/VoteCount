@@ -59,7 +59,7 @@ ks_cols.txt: votecount Makefile
 	votecount -a NoColumn -c empty.conf -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
 
 ks_vals.txt: votecount Makefile
-	votecount -a Candidate -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
+	votecount -a County -s ks $(DATADIR_KS)/*_general_*precinct.csv >$@
 
 ks_2016.csv: votecount
 	echo "votecount -o $@ -s ks $(DATADIR_KS)/*_general_*precinct.csv" >a.gdb

@@ -360,7 +360,7 @@ void Table::populateWithCSV(const std::string& fileName) {
         if (c != EOF) {
             nextChar = fgetc(f);
             if (c == '\r') {
-                c == '\n';
+                c = '\n';
                 if (nextChar == '\n') {
                     // treat CR or CR-LF as '\n'
                     nextChar = fgetc(f);
