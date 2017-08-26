@@ -32,9 +32,14 @@ ANY,ANY,Candidate,NO,"Trump","Donald J. Trump and Michael R. Pence "
 ANY,ANY,Candidate,NO,"Trump","Donald Trump"
 ANY,ANY,Candidate,NO,"Trump","Trump/Pence"
 ANY,ANY,Candidate,NO,"Trump","Trump & Pence"
+ANY,ANY,Candidate,NO,"Trump","Trump - Pence"
 ANY,ANY,Candidate,NO,"Trump","Trump / Pence"
 ANY,ANY,Candidate,NO,"Trump","Trump and Pence"
 ANY,ANY,Candidate,NO,"Trump","DONALD J TRUMP/MICHAEL R PENCE"
+ANY,ANY,Candidate,NO,"Trump","Donald Trump / Mike Pence"
+ANY,ANY,Candidate,NO,"Trump","Trump, Donald J. "
+ANY,ANY,Candidate,NO,"Trump","Trump-Pence"
+ANY,ANY,Candidate,NO,"Trump","Trump/Pence"
 ANY,ANY,Candidate,NO,"Clinton","Clinton/Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Hillary Clinton",
 ANY,ANY,Candidate,NO,"Clinton","Hillary Clinton / Tim Kaine",
@@ -43,12 +48,17 @@ ANY,ANY,Candidate,NO,"Clinton","Hillary Clinton and Tim Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Hillary Clinton and Tim Kaine ",
 ANY,ANY,Candidate,NO,"Clinton","Hillary Clinton, Tim Kaine",
 ANY,ANY,Candidate,NO,"Clinton","HILLARY CLINTON/TIM KAINE",
+ANY,ANY,Candidate,NO,"Clinton","Hillary Rodham Clinton",
 ANY,ANY,Candidate,NO,"Clinton","Clinton & Kaine",
+ANY,ANY,Candidate,NO,"Clinton","Clinton - Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Clinton / Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Clinton and Kaine",
+ANY,ANY,Candidate,NO,"Clinton","Clinton, Hillary Rodham ",
+ANY,ANY,Candidate,NO,"Clinton","Clinton-Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Clinton/Kaine",
 ANY,ANY,Candidate,NO,"Clinton","Hillary Rodham Clinton",
 ANY,ANY,Candidate,NO,"Johnson","Gary Johnson"
+ANY,ANY,Candidate,NO,"Johnson","Gary Johnson! Bill Weld"
 ANY,ANY,Candidate,NO,"Johnson","Gary Johnson / Bill Weld"
 ANY,ANY,Candidate,NO,"Johnson","Gary Johnson Bill Weld"
 ANY,ANY,Candidate,NO,"Johnson","Gary Johnson and Bill Weld"
@@ -56,8 +66,10 @@ ANY,ANY,Candidate,NO,"Johnson","Gary Johnson and Bill Weld "
 ANY,ANY,Candidate,NO,"Johnson","Gary Johnson, Bill Weld"
 ANY,ANY,Candidate,NO,"Johnson","Gary Johson"
 ANY,ANY,Candidate,NO,"Johnson","Johnson & Weld"
+ANY,ANY,Candidate,NO,"Johnson","Johnson - Weld"
 ANY,ANY,Candidate,NO,"Johnson","Johnson / Weld"
 ANY,ANY,Candidate,NO,"Johnson","Johnson and Weld"
+ANY,ANY,Candidate,NO,"Johnson","Johnson, Gary  "
 ANY,ANY,Candidate,NO,"Johnson","Johnson/Weld"
 ANY,ANY,Candidate,NO,"Johnson","GARY JOHNSON/BILL WELD"
 ANY,ANY,Candidate,NO,"Stein","Jill Stein"
@@ -69,17 +81,25 @@ ANY,ANY,Candidate,NO,"Stein","Jill Stein, Ajamu Baraka"
 ANY,ANY,Candidate,NO,"Stein","Stein/Baraka"
 ANY,ANY,Candidate,NO,"Stein","JILL STEIN/AJAMU BARAKA"
 ANY,ANY,Candidate,NO,"Stein","Stein & Baraka"
+ANY,ANY,Candidate,NO,"Stein","Stein - Baraka"
 ANY,ANY,Candidate,NO,"Stein","Stein / Baraka"
 ANY,ANY,Candidate,NO,"Stein","Stein and Baraka"
+ANY,ANY,Candidate,NO,"Stein","Stein, Jill  "
+ANY,ANY,Candidate,NO,"Stein","Stein-Baraka"
 ANY,ANY,Candidate,NO,"Stein","Stein/Baraka"
 ANY,ANY,Candidate,NO,"McMullin","Evan McMullin"
 ANY,ANY,Candidate,NO,"McMullin","EVAN MCMULLEN"
 ANY,ANY,Candidate,NO,"McMullin","EVAN MCMULLIN"
 ANY,ANY,Candidate,NO,"McMullin","McMallin/Johnson"
 ANY,ANY,Candidate,NO,"McMullin","McMullen / Johnson"
+ANY,ANY,Candidate,NO,"McMullin","McMullin / Johnson"
+ANY,ANY,Candidate,NO,"McMullin","McMullin - Johnson"
 ANY,ANY,Candidate,NO,"McMullin","McMullin and Johnson"
+ANY,ANY,Candidate,NO,"McMullin","McMullin and Johnson - WI"
+ANY,ANY,Candidate,NO,"McMullin","McMullin, Evan  "
 ANY,ANY,Candidate,NO,"McMullin","McMullin/Johnson"
 ANY,ANY,Candidate,NO,"McMullin","Evan McMullin (incl)"
+ANY,ANY,Candidate,NO,"McMullin","Evan McMullin (included)"
 ANY,ANY,Candidate,NO,"McMullin","Evan McMullin and Nathan Johnson"
 ANY,ANY,Candidate,NO,"McMullin","Evan McMullin and Nathan Johnson "
 ANY,ANY,Candidate,NO,"Castle","Darrell Castle"
@@ -87,7 +107,10 @@ ANY,ANY,Candidate,NO,"Castle","CARRELL CASTLE"
 ANY,ANY,Candidate,NO,"Castle","Castle & Bradley"
 ANY,ANY,Candidate,NO,"Castle","Castle / Bradley"
 ANY,ANY,Candidate,NO,"Castle","Castle and Bradley"
+ANY,ANY,Candidate,NO,"Castle","Castle and Bradley - WI"
+ANY,ANY,Candidate,NO,"Castle","Castle, Darrell L "
 ANY,ANY,Candidate,NO,"Castle","Castle/Bradley"
+ANY,ANY,Candidate,NO,"Castle","Castle/Bradley write in "
 ANY,ANY,Candidate,NO,"Castle","Darrell Castle (incl)"
 ANY,ANY,Candidate,NO,"Castle","Darrell Castle (included)"
 ANY,ANY,Candidate,NO,"Castle","Darrell L. Castle and Scott N. Bradley"

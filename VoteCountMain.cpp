@@ -388,6 +388,19 @@ std::unordered_map<std::string, int> getConfCandidates(const Table& confTab, std
     return(candidateMap);
 }
 
+bool stringEndsWithTotal(const std::string& str) {
+    size_t len = str.length();
+    if (len < 5) return false;
+    const char* last5 = str.c_str() + (len-5);
+    const char* total = "total";
+    for (size_t j = 0; j < 5; ++j) {
+        int c = last5[j];
+        if (('A' <= c) && (c <= 'Z')) c += 'a'-'A';
+        if (c != total[j]) return false;
+    }
+    return true;
+}
+
 void transformTables(
     FILE* out,
     const Table& confTab,
@@ -536,7 +549,7 @@ void transformTables(
                     auto valPrecinct = row[colPrecinct].getString();
                     if ((valPrecinct == "") ||
                         (valPrecinct == valCounty) || // "COWLEY KS" uses this as county-total
-                        isMatchingStr(false, valPrecinct, "total")) {
+                        stringEndsWithTotal(valPrecinct)) {
                         //fprintf(stderr, "DEBUG: skip precinct '%s'\n", valPrecinct.c_str());
                         return false;
                     }
