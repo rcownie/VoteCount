@@ -392,17 +392,25 @@ std::unordered_map<std::string, int> getConfCandidates(const Table& confTab, std
     return(candidateMap);
 }
 
-bool stringEndsWithTotal(const std::string& str) {
+bool stringBeginsOrEndsWithTotal(const std::string& str) {
     size_t len = str.length();
     if (len < 5) return false;
-    const char* last5 = str.c_str() + (len-5);
     const char* total = "total";
+    const char* first5 = str.c_str();
+    for (size_t j = 0;; ++j) {
+        if (j >= 5) return true;
+        int c = first5[j];
+        if (('A' <= c) && (c <= 'Z')) c += 'a'-'A';
+        if (c != total[j]) break;
+    }
+    const char* last5 = str.c_str() + (len-5);
     for (size_t j = 0; j < 5; ++j) {
+        if (j >= 5) return true;
         int c = last5[j];
         if (('A' <= c) && (c <= 'Z')) c += 'a'-'A';
-        if (c != total[j]) return false;
+        if (c != total[j]) break;
     }
-    return true;
+    return false;
 }
 
 bool isCountySpaceState(const std::string& str, const std::string& county, const std::string stateId) {
@@ -598,7 +606,7 @@ void transformTables(
             auto colCandidate = countyB.findColIdx("Candidate");
             std::vector<int> validCols = findVoteColsWithoutSums(
                 countyB,
-                { "vote", "votes" }
+                { "total", "vote", "votes" }
             );
             if (validCols.size() != 1) {
                 validCols = findVoteColsWithoutSums(
@@ -647,7 +655,7 @@ void transformTables(
                     if (
                         (valPrecinct == "") ||
                         (valPrecinct == valCounty) || // "COWLEY KS" uses this as county-total
-                        stringEndsWithTotal(valPrecinct) ||
+                        stringBeginsOrEndsWithTotal(valPrecinct) ||
                         isCountySpaceState(valPrecinct, valCounty, stateId)
                     ) {
                         //fprintf(stderr, "DEBUG: skip precinct '%s'\n", valPrecinct.c_str());
