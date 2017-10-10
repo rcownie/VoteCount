@@ -546,7 +546,7 @@ void transformTables(
         for (size_t idxA = 0; idxA < newColNamesA.size(); ++idxA) {
             newColFuncsA.push_back(
                 [idxA](const TableRow& row)->std::string {
-                    return row[idxA].getString();
+                    return((idxA < row.size()) ? row[idxA].getString() : std::string(""));
                 }
             );
         }
@@ -583,6 +583,7 @@ void transformTables(
                             if (filterCol >= 0) {
                                 auto filterVal = row[filterCol].getString();
                                 if (!isMatchingStr(false, filterVal, "President") &&
+                                    !isMatchingStr(false, filterVal, "President / Vice President") &&
                                     !isMatchingStr(false, filterVal, "Electors for President & Vice President")) {
                                     return false;
                                 }    
@@ -664,6 +665,7 @@ void transformTables(
                     auto valRace = ((colRace >= 0) ? row[colRace].getString() : "President");
                     valRace = raceValueMap.mapString(valRace);
                     if (!isMatchingStr(false, valRace, "president") &&
+                        !isMatchingStr(false, valRace, "president / vice president") &&
                         !isMatchingStr(false, valRace, "electors for president & vice president")) {
                         return false;
                     }

@@ -117,6 +117,11 @@ void Table::clear() {
 
 void Table::addCol(const std::string& colName) {
     assert(rowVec_.empty());
+    int c = colName.c_str()[0];
+    if ((c != 0) &&
+        ((c <= ' ') || (c & 0x80))) {
+        assert(0);
+    }
     //assert(colNameMap_.count(colName) == 0);
     int colIdx = colNames_.size();
     std::string modColName = colName;
